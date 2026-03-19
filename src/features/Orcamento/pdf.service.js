@@ -22,7 +22,8 @@ class PdfService {
       // 3. Usar Puppeteer para converter HTML em PDF
       const browser = await puppeteer.launch({
         headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
       });
 
       try {
@@ -77,7 +78,7 @@ class PdfService {
       // Se houver snapshot (URL), baixar e converter para base64
       if (item.custom_image && item.custom_image.startsWith('http')) {
         try {
-          const imgRes = await axios.get(item.custom_image, { responseType: 'arraybuffer', timeout: 5000 });
+          const imgRes = await axios.get(item.custom_image, { responseType: 'arraybuffer', timeout: 20000 });
           imageBase64 = Buffer.from(imgRes.data, 'binary').toString('base64');
         } catch (err) {
           console.warn(`[PDF SERVICE]: Falha ao processar imagem para ${item.title}`, err.message);
