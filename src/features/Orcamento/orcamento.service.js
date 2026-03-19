@@ -8,8 +8,9 @@ class OrcamentoService {
     const totalPrice = this.calculateTotalPrice(parsedItems);
 
     // 1. Persistir no Postgres
+    console.log(`[ORCAMENTO SERVICE]: Criando registro para cliente: ${data.customer_id || 'GUEST'}`);
     const orcamento = await Orcamento.create({
-      shopify_customer_id: data.customer_id || null,
+      shopify_customer_id: data.customer_id ? data.customer_id.toString() : null,
       lead_json: data.lead || null,
       line_items_json: parsedItems,
       total_price: totalPrice,
