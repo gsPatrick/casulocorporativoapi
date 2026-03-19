@@ -11,7 +11,7 @@ const SyncQueue = sequelize.define('SyncQueue', {
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'Orcamentos',
+      model: 'orcamentos',
       key: 'id'
     }
   },

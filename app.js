@@ -27,8 +27,8 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('✅ Conexão com Postgres estabelecida com sucesso.');
     
-    // Sync models (Usa { alter: true } para criar tabelas que faltam)
-    await sequelize.sync({ alter: true });
+    // Sync models (Usa { force: true } conforme solicitado para recriar tudo limpo)
+    await sequelize.sync({ force: true });
     console.log('✅ Modelos sincronizados com o banco de dados.');
 
     app.listen(PORT, () => {
