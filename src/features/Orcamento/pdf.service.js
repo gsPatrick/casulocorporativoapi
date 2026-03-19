@@ -48,21 +48,22 @@ class PdfService {
         currentY = 50;
       }
 
-      const title = item.type === 'configurable' ? `Produto: ${item.product_id}` : (item.title || 'Produto Padrão');
-      const specs = item.technical_specification || '';
+      const title = item.title || (item.type === 'configurable' ? `Produto: ${item.product_id}` : 'Produto Padrão');
+      const specs = item.technical_specification ? item.technical_specification.replace(/ \| /g, ', ') : '';
       
       const unitPrice = 0.00; // Preços sob consulta (Bling B2B flow)
       const lineTotal = unitPrice * item.quantity;
 
-      // Renderiza Linha Principal
-      this.generateTableRow(doc, currentY, title, item.quantity.toString(), 'A definir', 'A definir');
+      // Renderiza Linha Principal (Título do Produto)
+      doc.font('Helvetica-Bold').fontSize(11).text(title, 50, currentY);
+      this.generateTableRow(doc, currentY, '', item.quantity.toString(), 'A definir', 'A definir');
       currentY += 15;
 
-      // Renderiza Especificação Técnica (Se houver)
+      // Renderiza Complemento (Especificação Técnica)
       if (specs) {
-        doc.fontSize(8).fillColor('#666666').text(specs, 50, currentY, { width: 500 });
-        const specLines = doc.heightOfString(specs, { width: 500 }) / 8;
-        currentY += (specLines * 8) + 10;
+        doc.font('Helvetica').fontSize(9).fillColor('#444444').text(`Configuração: ${specs}`, 50, currentY, { width: 450 });
+        const specLines = Math.ceil(doc.heightOfString(specs, { width: 450 }) / 9);
+        currentY += (specLines * 9) + 12;
         doc.fillColor('black').fontSize(10);
       }
 
