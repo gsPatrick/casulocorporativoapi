@@ -39,57 +39,32 @@ const validateShopifyProxy = (req, res, next) => {
 };
 
 /**
- * Middleware para validar a sessão do cliente via Storefront API
- * (Obrigatório para rotas sensíveis como 'Meus Orçamentos')
+ * Middleware para validar a sessão do cliente em rotas de App Proxy
+ * O Shopify envia o 'logged_in_customer_id' na query se o usuário estiver logado.
  */
 const validateCustomerSession = async (req, res, next) => {
-  const customerIdFromReq = req.body.customer_id || req.params.customer_id || req.query.customer_id;
-  const storefrontAccessToken = req.headers['x-shopify-customer-access-token'];
+  const requestedId = req.params.customer_id;
+  
+  // No App Proxy do Shopify, o ID do cliente logado vem na query string
+  // Shopify garante a integridade desse dado através do HMAC validado anteriormente.
+  const loggedInId = req.query.logged_in_customer_id || req.query.customer_id;
 
-  if (!storefrontAccessToken) {
-    return res.status(403).json({ error: 'Sessão do cliente não fornecida' });
+  console.log(`[AUTH]: Validando Sessão - Requisitado: ${requestedId}, Logado: ${loggedInId}`);
+
+  if (!loggedInId) {
+    return res.status(403).json({ error: 'Sessão do cliente não encontrada. Por favor, faça login na loja.' });
   }
 
-  try {
-    // Validar token na Storefront API
-    const response = await fetch(`https://${process.env.SHOPIFY_HOST_NAME}/api/2024-01/graphql.json`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Storefront-Access-Token': process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN || ''
-      },
-      body: JSON.stringify({
-        query: `
-          query {
-            customer(customerAccessToken: "${storefrontAccessToken}") {
-              id
-            }
-          }
-        `
-      })
-    });
+  // Compara os IDs (Removendo prefixos de GID se houver)
+  const cleanRequestedId = requestedId.replace('gid://shopify/Customer/', '');
+  const cleanLoggedInId = loggedInId.replace('gid://shopify/Customer/', '');
 
-    const result = await response.json();
-    const sessionCustomerId = result.data?.customer?.id;
-
-    if (!sessionCustomerId) {
-      return res.status(403).json({ error: 'Sessão inválida ou expirada' });
-    }
-
-    // Extrair apenas o número do ID (Shopify retorna gid://shopify/Customer/12345)
-    const numericSessionId = sessionCustomerId.split('/').pop();
-    const numericReqId = customerIdFromReq.replace('gid://shopify/Customer/', '');
-
-    if (numericSessionId !== numericReqId) {
-      console.warn(`Tentativa de acesso não autorizado: Req ID ${numericReqId} vs Session ID ${numericSessionId}`);
-      return res.status(403).json({ error: 'Acesso negado: ID do cliente não corresponde à sessão' });
-    }
-
-    next();
-  } catch (error) {
-    console.error('Erro na validação da Storefront API:', error.message);
-    res.status(500).json({ error: 'Erro ao validar sessão' });
+  if (cleanRequestedId !== cleanLoggedInId) {
+    console.warn(`[AUTH]: Tentativa de acesso não autorizado de ${cleanLoggedInId} para dados de ${cleanRequestedId}`);
+    return res.status(403).json({ error: 'Acesso negado: Você só pode ver seus próprios orçamentos.' });
   }
+
+  next();
 };
 
 module.exports = { validateShopifyProxy, validateCustomerSession };
