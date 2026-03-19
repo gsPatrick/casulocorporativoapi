@@ -9,7 +9,11 @@ const Orcamento = sequelize.define('Orcamento', {
   },
   shopify_customer_id: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
+  },
+  lead_json: {
+    type: DataTypes.JSONB,
+    allowNull: true,
   },
   line_items_json: {
     type: DataTypes.JSONB,

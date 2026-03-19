@@ -21,55 +21,84 @@ class PdfService {
     doc.moveDown();
 
     doc.fontSize(14).text('Informações do Cliente', { underline: true });
-    doc.fontSize(10).text(`ID do Cliente Shopify: ${orcamento.shopify_customer_id}`);
+    if (orcamento.shopify_customer_id) {
+      doc.fontSize(10).text(`ID do Cliente Shopify: ${orcamento.shopify_customer_id}`);
+    } else if (orcamento.lead_json) {
+      doc.fontSize(10).text(`Lead: ${orcamento.lead_json.nome}`);
+      doc.text(`E-mail: ${orcamento.lead_json.email}`);
+      doc.text(`WhatsApp: ${orcamento.lead_json.whatsapp}`);
+    }
     doc.moveDown();
 
     // --- Items Table ---
-    doc.fontSize(14).text('Itens do Orçamento', { underline: true });
+    doc.fontSize(14).text('Produtos e Especificações', { underline: true });
     doc.moveDown(0.5);
 
     const tableTop = 200;
     doc.fontSize(10);
-    this.generateTableRow(doc, tableTop, 'Produto', 'Qtd', 'Preço Unit.', 'Total');
+    this.generateTableRow(doc, tableTop, 'Produto / Especificação', 'Qtd', 'Preço', 'Total');
     this.generateHr(doc, tableTop + 15);
 
     let i = 0;
+    let currentY = tableTop + 25;
+
     for (const item of orcamento.line_items_json) {
-      const y = tableTop + 25 + (i * 25);
-      const title = item.type === 'configurable' ? `[Config] ${item.product_id}` : item.title;
-      const unitPrice = 100.00; // Dummy price logic compatible with previous service
+      if (currentY + 150 > 750) {
+        doc.addPage();
+        currentY = 50;
+      }
+
+      const title = item.type === 'configurable' ? `Produto: ${item.product_id}` : (item.title || 'Produto Padrão');
+      const specs = item.technical_specification || '';
+      
+      const unitPrice = 0.00; // Preços sob consulta (Bling B2B flow)
       const lineTotal = unitPrice * item.quantity;
 
-      this.generateTableRow(doc, y, title, item.quantity.toString(), `R$ ${unitPrice.toFixed(2)}`, `R$ ${lineTotal.toFixed(2)}`);
-      this.generateHr(doc, y + 15);
+      // Renderiza Linha Principal
+      this.generateTableRow(doc, currentY, title, item.quantity.toString(), 'A definir', 'A definir');
+      currentY += 15;
+
+      // Renderiza Especificação Técnica (Se houver)
+      if (specs) {
+        doc.fontSize(8).fillColor('#666666').text(specs, 50, currentY, { width: 500 });
+        const specLines = doc.heightOfString(specs, { width: 500 }) / 8;
+        currentY += (specLines * 8) + 10;
+        doc.fillColor('black').fontSize(10);
+      }
+
+      // Renderiza Snapshot (Imagem) se existir
+      if (item.custom_image) {
+        const imgHeight = 120;
+        if (currentY + imgHeight > 750) {
+          doc.addPage();
+          currentY = 50;
+        }
+
+        try {
+          const response = await axios.get(item.custom_image, { 
+            responseType: 'arraybuffer',
+            timeout: 5000 // Timeout de 5s para não travar o PDF
+          });
+          doc.image(response.data, 50, currentY, { height: imgHeight });
+          currentY += imgHeight + 10;
+        } catch (err) {
+          console.error('Erro ao baixar snapshot para PDF, usando fallback:', err.message);
+          
+          // Fallback: Desenha um box cinza com texto informativo
+          doc.rect(50, currentY, 200, imgHeight).fill('#f0f0f0');
+          doc.fillColor('#999999').fontSize(10).text('Imagem da configuração não disponível', 60, currentY + (imgHeight / 2) - 5);
+          doc.fillColor('black'); // Reseta cor
+          currentY += imgHeight + 10;
+        }
+      }
+
+      this.generateHr(doc, currentY);
+      currentY += 20;
       i++;
     }
 
-    const subtotalPosition = tableTop + 25 + (i * 25) + 20;
-    doc.fontSize(12).text(`Total Geral: R$ ${parseFloat(orcamento.total_price).toFixed(2)}`, 400, subtotalPosition, { align: 'right', bold: true });
-
-    // --- Configuration Previews (Images) ---
-    let imageY = subtotalPosition + 50;
-    for (const item of orcamento.line_items_json) {
-      if (item.customizer_state && item.customizer_state.preview_image) {
-        if (imageY + 200 > 750) {
-          doc.addPage();
-          imageY = 50;
-        }
-
-        doc.fontSize(12).text(`Preview da Configuração (${item.product_id}):`, 50, imageY);
-        try {
-          // Nota: Para renderizar imagem de URL, o pdfkit precisa baixar o buffer
-          const response = await axios.get(item.customizer_state.preview_image, { responseType: 'arraybuffer' });
-          doc.image(response.data, 50, imageY + 20, { width: 300 });
-          imageY += 250;
-        } catch (err) {
-          doc.fontSize(8).fillColor('red').text('Erro ao carregar preview da imagem', 50, imageY + 20);
-          doc.fillColor('black');
-          imageY += 50;
-        }
-      }
-    }
+    const totalY = Math.min(currentY + 20, 700);
+    doc.fontSize(12).text(`Solicitação de Cotação B2B`, 400, totalY, { align: 'right', bold: true });
 
     // --- Footer ---
     doc.fontSize(10).text('Esta proposta é válida por 15 dias.', 50, 700, { align: 'center', width: 500 });

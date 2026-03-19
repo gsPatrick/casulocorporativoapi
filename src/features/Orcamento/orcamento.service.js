@@ -9,7 +9,8 @@ class OrcamentoService {
 
     // 1. Persistir no Postgres
     const orcamento = await Orcamento.create({
-      shopify_customer_id: data.customer_id,
+      shopify_customer_id: data.customer_id || null,
+      lead_json: data.lead || null,
       line_items_json: parsedItems,
       total_price: totalPrice,
       status: 'pendente'
@@ -23,7 +24,7 @@ class OrcamentoService {
       console.error('Falha na sincronização inicial com Metaobjects:', error.message);
     }
 
-    // 3. Notificação Comercial (Stage 3)
+    // 3. Notificação Comercial (E-mail)
     try {
       await this.sendCommercialNotification(orcamento);
     } catch (error) {
@@ -34,7 +35,6 @@ class OrcamentoService {
   }
 
   async sendCommercialNotification(orcamento) {
-    // Configuração do transportador (Ajustar com credenciais reais no .env)
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST || 'smtp.mailtrap.io',
       port: process.env.EMAIL_PORT || 2525,
@@ -44,22 +44,34 @@ class OrcamentoService {
       }
     });
 
+    const isLead = !orcamento.shopify_customer_id && orcamento.lead_json;
+    const clientInfo = isLead 
+      ? `Lead: ${orcamento.lead_json.nome} (${orcamento.lead_json.whatsapp})` 
+      : `Cliente Shopify ID: ${orcamento.shopify_customer_id}`;
+
     const pdfLink = `${process.env.APP_URL || 'https://sua-api.com'}/api/orcamento/${orcamento.id}/pdf`;
 
     const mailOptions = {
       from: '"Casulo B2B" <no-reply@casulo.com>',
       to: 'comercial@casulo.com',
-      subject: `Novo Orçamento Recebido - Cliente #${orcamento.shopify_customer_id}`,
+      subject: `Novo Orçamento: ${isLead ? orcamento.lead_json.nome : 'Cliente #' + orcamento.shopify_customer_id}`,
       html: `
         <h2>Nova Solicitação de Orçamento</h2>
-        <p><strong>ID do Orçamento:</strong> ${orcamento.id}</p>
-        <p><strong>Cliente Shopify:</strong> ${orcamento.shopify_customer_id}</p>
+        <p><strong>ID:</strong> ${orcamento.id}</p>
+        <p><strong>Origem:</strong> ${clientInfo}</p>
+        <p><strong>E-mail:</strong> ${isLead ? orcamento.lead_json.email : 'N/A (Logado)'}</p>
         <p><strong>Valor Estimado:</strong> R$ ${parseFloat(orcamento.total_price).toFixed(2)}</p>
         <hr />
-        <p><strong>Configuração:</strong></p>
-        <pre>${JSON.stringify(orcamento.line_items_json, null, 2)}</pre>
+        <p><strong>Itens:</strong></p>
+        ${orcamento.line_items_json.map(item => `
+          <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+            <p><strong>Produto:</strong> ${item.product_id}</p>
+            <p><strong>Especificação:</strong> ${item.technical_specification || 'N/A'}</p>
+            ${item.custom_image ? `<p><img src="${item.custom_image}" width="200" style="border: 1px solid #ddd;" /></p>` : ''}
+          </div>
+        `).join('')}
         <hr />
-        <p>Você pode baixar a proposta completa aqui: <a href="${pdfLink}">Ver PDF da Proposta</a></p>
+        <p>Baixar proposta completa em PDF: <a href="${pdfLink}">Link da Proposta</a></p>
       `
     };
 
@@ -70,17 +82,14 @@ class OrcamentoService {
     if (!Array.isArray(items)) return [];
 
     return items.map(item => {
+      // Itens configuráveis agora incluem technical_specification e custom_image (Snapshot)
       if (item.type === 'configurable') {
-        if (!item.customizer_state || Object.keys(item.customizer_state).length === 0) {
-          throw new Error(`Item configurável (${item.product_id}) sem estado do customizador.`);
-        }
-
         return {
           type: 'configurable',
           product_id: item.product_id,
-          bundle_variants: item.bundle_variants || [],
-          customizer_state: item.customizer_state,
-          configuration_url: item.configuration_url || '',
+          technical_specification: item.technical_specification || '',
+          custom_image: item.custom_image || null,
+          customizer_state: item.customizer_state || {},
           quantity: item.quantity || 1
         };
       }
@@ -98,7 +107,7 @@ class OrcamentoService {
   calculateTotalPrice(items) {
     let total = 0;
     items.forEach(item => {
-      const basePrice = 100.00; 
+      const basePrice = 0.00; // Preços são tratados no orçamento personalizado
       total += basePrice * (item.quantity || 1);
     });
     return total;
@@ -116,28 +125,22 @@ class OrcamentoService {
   }
 
   async syncWithShopifyMetaobject(orcamento) {
-    const query = `
-      mutation metaobjectCreate($metaobject: MetaobjectCreateInput!) {
-        metaobjectCreate(metaobject: $metaobject) {
-          metaobject { id handle }
-          userErrors { field message }
-        }
-      }
-    `;
+    const isLead = !orcamento.shopify_customer_id && orcamento.lead_json;
+    const clientName = isLead ? orcamento.lead_json.nome : `Customer_${orcamento.shopify_customer_id}`;
 
     const variables = {
       metaobject: {
         type: 'orcamento',
         fields: [
-          { key: 'customer_id', value: orcamento.shopify_customer_id },
+          { key: 'customer_id', value: orcamento.shopify_customer_id || 'guest' },
+          { key: 'customer_name', value: clientName },
           { key: 'total_price', value: orcamento.total_price.toString() },
           { key: 'configuration_summary', value: JSON.stringify(orcamento.line_items_json) }
         ]
       }
     };
 
-    console.log('Sincronizando com Shopify Metaobjects...', orcamento.id);
-    // Simulação de retorno
+    console.log('Sincronizando orçamentos com Shopify Metaobjects...', orcamento.id);
     return `gid://shopify/Metaobject/mock-${orcamento.id.substring(0,8)}`;
   }
 }

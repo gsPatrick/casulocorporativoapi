@@ -4,6 +4,11 @@ class OrcamentoController {
   async create(req, res) {
     try {
       const orcamento = await orcamentoService.createOrcamento(req.body);
+      
+      // Enfileirar para sincronização com o Bling (Background)
+      const syncService = require('./sync.service');
+      await syncService.enqueue(orcamento.id);
+
       res.status(201).json(orcamento);
     } catch (error) {
       console.error('Erro ao criar orçamento:', error);
@@ -41,6 +46,70 @@ class OrcamentoController {
       if (!res.headersSent) {
         res.status(500).json({ error: 'Erro ao gerar PDF' });
       }
+    }
+  }
+
+  /**
+   * Serve a imagem temporária de forma segura para o Bling
+   */
+  async serveTempImage(req, res) {
+    try {
+      const { token, filename } = req.params;
+      const SyncQueue = require('../../models/SyncQueue');
+      const path = require('path');
+      const fs = require('fs');
+
+      // 1. Validar Token e Nome de Arquivo
+      const job = await SyncQueue.findOne({
+        where: { secret_token: token, local_filename: filename }
+      });
+
+      if (!job) {
+        return res.status(403).json({ error: 'Acesso negado ou token expirado' });
+      }
+
+      // 2. Localizar arquivo físico
+      const filePath = path.join(__dirname, '../../temp/images', filename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Imagem não encontrada ou já deletada' });
+      }
+
+      // 3. Streamar arquivo
+      const ext = path.extname(filename).toLowerCase();
+      const contentType = ext === '.png' ? 'image/png' : 'image/jpeg';
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'no-cache');
+      fs.createReadStream(filePath).pipe(res);
+
+    } catch (error) {
+      console.error('Erro ao servir imagem temporária:', error.message);
+      res.status(500).json({ error: 'Erro interno ao servir imagem' });
+    }
+  }
+
+  /**
+   * Rota de Teste para gerar PDF sem filtros de segurança
+   */
+  async testGeneratePDF(req, res) {
+    try {
+      const { id } = req.params;
+      const orcamento = await orcamentoService.getOrcamentoById(id);
+      
+      if (!orcamento) return res.status(404).json({ error: 'Orçamento não encontrado' });
+
+      console.log(`[PDF TEST]: Gerando PDF para orçamento #${id}`);
+
+      // Configurar headers para download do PDF
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename=test-proposta-${id}.pdf`);
+
+      const pdfService = require('./pdf.service');
+      await pdfService.generateOrcamentoPDF(orcamento, res);
+      
+    } catch (error) {
+      console.error('Erro ao gerar PDF de teste:', error);
+      res.status(500).send('Erro ao gerar PDF: ' + error.message);
     }
   }
 }
