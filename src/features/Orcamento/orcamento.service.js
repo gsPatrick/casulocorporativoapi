@@ -95,24 +95,18 @@ class OrcamentoService {
 
     return items.map(item => {
       // Itens configuráveis agora incluem technical_specification e custom_image (Snapshot)
-      if (item.type === 'configurable') {
-        return {
-          type: 'configurable',
-          product_id: item.product_id,
-          technical_specification: item.technical_specification || '',
-          custom_image: item.custom_image || null,
-          customizer_state: item.customizer_state || {},
-          quantity: item.quantity || 1
-        };
-      }
-
-      return {
-        type: 'standard',
+      const parsedItem = {
+        type: item.type || 'standard',
         product_id: item.product_id,
-        variant_id: item.variant_id,
-        quantity: item.quantity || 1,
-        title: item.title || 'Produto Padrão'
+        variant_id: item.variant_id || null,
+        title: item.title || 'Produto',
+        technical_specification: item.technical_specification || '',
+        custom_image: item.custom_image || null,
+        customizer_state: item.customizer_state || {},
+        quantity: item.quantity || 1
       };
+
+      return parsedItem;
     });
   }
 
