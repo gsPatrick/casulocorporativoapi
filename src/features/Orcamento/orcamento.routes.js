@@ -9,6 +9,11 @@ router.get('/temp-images/:token/:filename', orcamentoController.serveTempImage);
 // Rota de TESTE para gerar PDF diretamente (Sem HMAC)
 router.get('/test/generate-pdf/:id', orcamentoController.testGeneratePDF);
 
+// Rotas de Autenticação OAuth2 do Bling (Sem HMAC do Shopify)
+const blingAuthController = require('./bling.auth.controller');
+router.get('/bling/auth', blingAuthController.authorize);
+router.get('/bling/callback', blingAuthController.callback);
+
 // Todas as rotas via App Proxy precisam de HMAC
 router.use(validateShopifyProxy);
 

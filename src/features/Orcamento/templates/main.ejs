@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Proposta Comercial #<%= id %></title>
+    <style>
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+            background: #fff;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .proposta-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .proposta-header h1 {
+            font-size: 22px;
+            margin: 0;
+            color: #000;
+            letter-spacing: 1px;
+        }
+        .box-info {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .info-card {
+            flex: 1;
+            border: 1px solid #ddd;
+            padding: 15px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        .info-card strong {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #000;
+        }
+        .footer-note {
+            margin-top: 40px;
+            font-size: 10px;
+            color: #888;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER COMPONENT -->
+        <%- include('components/header') %>
+
+        <div class="proposta-header">
+            <h1>Proposta Nº <%= id %></h1>
+        </div>
+
+        <div class="box-info">
+            <!-- CLIENT INFO -->
+            <div class="info-card">
+                <strong>Para:</strong>
+                <% if (customer_name) { %>
+                    <%= customer_name %><br>
+                <% } %>
+                <% if (customer_email) { %>
+                    Email: <%= customer_email %><br>
+                <% } %>
+                <% if (customer_whatsapp) { %>
+                    WhatsApp: <%= customer_whatsapp %>
+                <% } %>
+            </div>
+
+            <!-- PROPOSAL DATA -->
+            <div class="info-card" style="max-width: 200px;">
+                <strong>Dados da Proposta:</strong>
+                Número: <%= id.substring(0, 8).toUpperCase() %><br>
+                Data: <%= date %><br>
+                Validade: 15 dias
+            </div>
+        </div>
+
+        <!-- ITEMS TABLE COMPONENT -->
+        <%- include('components/items-table') %>
+
+        <!-- CONDITIONS -->
+        <div style="margin-top: 30px; font-size: 11px; border: 1px solid #eee; padding: 15px; background: #fafafa;">
+            <strong style="display: block; margin-bottom: 10px;">Condições Comerciais:</strong>
+            1. Preços sujeitos a alteração sem aviso prévio.<br>
+            2. Prazo de entrega a combinar conforme disponibilidade de estoque.<br>
+            3. Pagamento: Sob consulta (B2B).
+        </div>
+
+        <div class="footer-note">
+            Casulo Corporativa - Transformando espaços de trabalho.
+        </div>
+    </div>
+</body>
+</html>
