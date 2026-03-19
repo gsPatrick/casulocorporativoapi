@@ -16,22 +16,33 @@ class OrcamentoService {
       status: 'pendente'
     });
 
-    // 2. Sincronizar com Shopify Metaobjects
+    // 2. Processar tarefas secundárias em Segundo Plano (Background)
+    // Não usamos 'await' aqui para retornar a resposta rápido ao Shopify
+    this.processPostCreationTasks(orcamento).catch(err => {
+      console.error('Erro em tarefas pós-criação:', err.message);
+    });
+
+    return orcamento;
+  }
+
+  /**
+   * Executa tarefas que não precisam bloquear a resposta HTTP
+   */
+  async processPostCreationTasks(orcamento) {
+    // A. Sincronizar com Shopify Metaobjects
     try {
       const metaobjectRef = await this.syncWithShopifyMetaobject(orcamento);
       await orcamento.update({ pdf_url: metaobjectRef });
     } catch (error) {
-      console.error('Falha na sincronização inicial com Metaobjects:', error.message);
+      console.error('Falha na sincronização com Metaobjects:', error.message);
     }
 
-    // 3. Notificação Comercial (E-mail)
+    // B. Notificação Comercial (E-mail)
     try {
       await this.sendCommercialNotification(orcamento);
     } catch (error) {
       console.error('Falha ao enviar e-mail de notificação:', error.message);
     }
-
-    return orcamento;
   }
 
   async sendCommercialNotification(orcamento) {
