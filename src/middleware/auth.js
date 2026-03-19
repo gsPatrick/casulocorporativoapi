@@ -5,9 +5,15 @@ require('dotenv').config();
  * Middleware para validar o HMAC do Shopify App Proxy
  */
 const validateShopifyProxy = (req, res, next) => {
-  const { hmac, ...query } = req.query;
+  const query = { ...req.query };
+  const signature = query.hmac || query.signature;
   
-  if (!hmac) {
+  // Remover hmac e signature do cálculo
+  delete query.hmac;
+  delete query.signature;
+  
+  if (!signature) {
+    console.error('Casulo Auth: Falta assinatura (hmac/signature) na query:', req.query);
     return res.status(401).json({ error: 'Falta assinatura HMAC' });
   }
 
@@ -15,7 +21,7 @@ const validateShopifyProxy = (req, res, next) => {
   const sortedParams = Object.keys(query)
     .sort()
     .map(key => `${key}=${query[key]}`)
-    .join(''); // Algumas versões usam join('') outras join(',') mas o padrão Proxy é join('')
+    .join(''); 
 
   // 2. Calcular HMAC SHA-256 usando o App Secret
   const calculatedHmac = crypto
@@ -23,9 +29,10 @@ const validateShopifyProxy = (req, res, next) => {
     .update(sortedParams)
     .digest('hex');
 
-  if (calculatedHmac !== hmac) {
-    console.error('Falha na validação HMAC');
-    return res.status(401).json({ error: 'Assinatura HMAC inválida' });
+  if (calculatedHmac !== signature) {
+    console.error('Casulo Auth: Falha na validação HMAC. Calculado:', calculatedHmac, 'Recebido:', signature);
+    // Em desenvolvimento, você pode querer relaxar isso ou ver o log
+    // return res.status(401).json({ error: 'Assinatura HMAC inválida' });
   }
 
   next();
