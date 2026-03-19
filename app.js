@@ -17,11 +17,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Rotas
 app.use('/api', routes);
 
-// Rota de saúde (Health Check)
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
-});
-
 // Sincronizar Banco e Iniciar Servidor
 const startServer = async () => {
   try {
