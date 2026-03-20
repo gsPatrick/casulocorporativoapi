@@ -34,13 +34,10 @@ class OrcamentoService {
     return orcamento;
   }
 
-  /**
-   * Executa tarefas que não precisam bloquear a resposta HTTP
-   */
   async processPostCreationTasks(orcamento, base64Map = {}) {
-    // 0. Salvar imagens Base64 no disco (Bypass 504 Timeout)
+    // 0. Salvar imagens (Base64 ou URL) no disco
     if (Object.keys(base64Map).length > 0) {
-      this.saveBase64ImagesToDiskSync(base64Map, orcamento.id);
+      await this.processImagesMap(base64Map, orcamento.id);
     }
 
     // A. Sincronizar com Shopify Metaobjects
