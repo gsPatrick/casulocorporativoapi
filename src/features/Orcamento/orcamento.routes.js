@@ -22,7 +22,7 @@ router.post('/:id/snapshot', orcamentoController.uploadSnapshot);
 router.get('/:id/pdf', orcamentoController.generatePDF);
 router.get('/images/:id/:index', orcamentoController.serveImage); // Nova rota de bypass
 
-// Rota sensível que exige confirmação da sessão do cliente
+// Rota sensível que exige confirmação da sessão do cliente (Validado por Shopify/Customer ID)
 router.get('/cliente/:customer_id', validateCustomerSession, orcamentoController.listByCustomer);
 
 module.exports = router;
