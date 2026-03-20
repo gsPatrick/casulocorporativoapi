@@ -102,6 +102,31 @@ class OrcamentoController {
   }
 
   /**
+   * Recebe snapshots de imagem em uma requisição separada (Bypass 504 Timeout)
+   */
+  async uploadSnapshot(req, res) {
+    const startTime = Date.now();
+    const { id } = req.params;
+    const { base64Map } = req.body;
+
+    console.log(`\n[${new Date().toISOString()}] >>> [CONTROLLER]: Recebendo Snapshot tardio para Orçamento: ${id}`);
+
+    try {
+      if (!base64Map || Object.keys(base64Map).length === 0) {
+        return res.status(400).json({ error: 'Nenhum snapshot enviado' });
+      }
+
+      // Processar e salvar no disco (Isso atualiza o DB também)
+      await orcamentoService.saveBase64ImagesAfterCreation(id, base64Map);
+
+      console.log(`[${new Date().toISOString()}] <<< [CONTROLLER]: Snapshots processados em ${Date.now() - startTime}ms`);
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] [CONTROLLER ERROR]:`, error.message);
+      res.status(500).json({ error: 'Erro ao processar snapshots' });
+    }
+  }
+  /**
    * Rota de Teste para gerar PDF sem filtros de segurança
    */
   async testGeneratePDF(req, res) {

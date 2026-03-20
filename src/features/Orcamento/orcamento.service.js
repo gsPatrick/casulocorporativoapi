@@ -166,6 +166,38 @@ class OrcamentoService {
   }
 
   /**
+   * Salva as imagens após a criação (Endpoint tardio para evitar timeout 504 no App Proxy)
+   */
+  async saveBase64ImagesAfterCreation(orcamentoId, base64Map) {
+    // 1. Salva os arquivos no disco (Método que já temos)
+    this.saveBase64ImagesToDiskSync(base64Map, orcamentoId);
+    
+    // 2. Garante que o DB tem os links (Em caso do frontend não ter enviado os links previstos)
+    const orcamento = await Orcamento.findByPk(orcamentoId);
+    if (!orcamento) {
+      console.error(`[SERVICE]: Orçamento ${orcamentoId} não encontrado para upload tardio.`);
+      return;
+    }
+    
+    let needsUpdate = false;
+    const updatedItems = orcamento.line_items_json.map((item, index) => {
+      if (base64Map[index] && !item.custom_image?.includes('/images/')) {
+         needsUpdate = true;
+         return {
+           ...item,
+           custom_image: `/apps/orcamento/api/orcamento/images/${orcamentoId}/${index}`
+         };
+      }
+      return item;
+    });
+    
+    if (needsUpdate) {
+      await orcamento.update({ line_items_json: updatedItems });
+      console.log(`[SERVICE]: DB atualizado com links de imagem para Orçamento ${orcamentoId}`);
+    }
+  }
+
+  /**
    * Extrai Base64 dos itens para processamento em background (Bypass 504 Timeout)
    */
   extractBase64Images(items, orcamentoId) {

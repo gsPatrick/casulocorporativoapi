@@ -18,6 +18,7 @@ router.get('/bling/callback', blingAuthController.callback);
 router.use(validateShopifyProxy);
 
 router.post('/', orcamentoController.create);
+router.post('/:id/snapshot', orcamentoController.uploadSnapshot);
 router.get('/:id/pdf', orcamentoController.generatePDF);
 router.get('/images/:id/:index', orcamentoController.serveImage); // Nova rota de bypass
 
