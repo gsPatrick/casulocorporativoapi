@@ -5,11 +5,14 @@ class OrcamentoController {
     try {
       const orcamento = await orcamentoService.createOrcamento(req.body);
       
+      // Enviar resposta IMEDIATAMENTE antes de tarefas de sincronização pesadas
+      res.status(201).json(orcamento);
+      
       // Enfileirar para sincronização com o Bling (Background)
       const syncService = require('./sync.service');
-      await syncService.enqueue(orcamento.id);
-
-      res.status(201).json(orcamento);
+      syncService.enqueue(orcamento.id).catch(err => {
+        console.error('Erro ao enfileirar para o Bling:', err.message);
+      });
     } catch (error) {
       console.error('Erro ao criar orçamento:', error);
       res.status(500).json({ error: 'Erro interno ao processar orçamento' });
