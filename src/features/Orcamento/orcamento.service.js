@@ -182,7 +182,7 @@ class OrcamentoService {
          needsUpdate = true;
          return {
            ...item,
-           custom_image: `/apps/orcamento/api/orcamento/images/${orcamentoId}/${index}`
+           custom_image: `/apps/orcamento/images/${orcamentoId}/${index}`
          };
       }
       return item;
@@ -204,7 +204,7 @@ class OrcamentoService {
         base64Map[index] = item.custom_image;
         return {
           ...item,
-          custom_image: `/apps/orcamento/api/orcamento/images/${orcamentoId}/${index}`
+          custom_image: `/apps/orcamento/images/${orcamentoId}/${index}`
         };
       }
       return item;
