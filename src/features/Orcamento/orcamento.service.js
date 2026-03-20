@@ -10,9 +10,9 @@ class OrcamentoService {
     // 1. Persistir no Postgres
     console.log(`[ORCAMENTO SERVICE]: Criando registro para cliente: ${data.customer_id || 'GUEST'}`);
     
-    // Bypass Shopify Proxy Limit: Salvar imagens Base64 no disco e usar URLs
-    const orcamentoId = require('crypto').randomUUID(); // Gerar ID antecipado para o nome do arquivo
-    const finalItems = await this.saveBase64ImagesToDisk(parsedItems, orcamentoId);
+    // Bypass Shopify 504 Timeout: Extraímos os Base64 pesados para processar em segundo plano
+    const orcamentoId = require('crypto').randomUUID();
+    const { items: finalItems, base64Map } = this.extractBase64Images(parsedItems, orcamentoId);
 
     const orcamento = await Orcamento.create({
       id: orcamentoId,
@@ -24,8 +24,7 @@ class OrcamentoService {
     });
 
     // 2. Processar tarefas secundárias em Segundo Plano (Background)
-    // Não usamos 'await' aqui para retornar a resposta rápido ao Shopify
-    this.processPostCreationTasks(orcamento).catch(err => {
+    this.processPostCreationTasks(orcamento, base64Map).catch(err => {
       console.error('Erro em tarefas pós-criação:', err.message);
     });
 
@@ -35,7 +34,12 @@ class OrcamentoService {
   /**
    * Executa tarefas que não precisam bloquear a resposta HTTP
    */
-  async processPostCreationTasks(orcamento) {
+  async processPostCreationTasks(orcamento, base64Map = {}) {
+    // 0. Salvar imagens Base64 no disco (Bypass 504 Timeout)
+    if (Object.keys(base64Map).length > 0) {
+      this.saveBase64ImagesToDiskSync(base64Map, orcamento.id);
+    }
+
     // A. Sincronizar com Shopify Metaobjects
     try {
       const metaobjectRef = await this.syncWithShopifyMetaobject(orcamento);
@@ -157,7 +161,29 @@ class OrcamentoService {
     console.log('Sincronizando orçamentos com Shopify Metaobjects...', orcamento.id);
     return `gid://shopify/Metaobject/mock-${orcamento.id.substring(0,8)}`;
   }
-  async saveBase64ImagesToDisk(items, orcamentoId) {
+
+  /**
+   * Extrai Base64 dos itens para processamento em background (Bypass 504 Timeout)
+   */
+  extractBase64Images(items, orcamentoId) {
+    const base64Map = {};
+    const finalItems = items.map((item, index) => {
+      if (item.custom_image && item.custom_image.startsWith('data:image')) {
+        base64Map[index] = item.custom_image;
+        return {
+          ...item,
+          custom_image: `/apps/orcamento/api/orcamento/images/${orcamentoId}/${index}`
+        };
+      }
+      return item;
+    });
+    return { items: finalItems, base64Map };
+  }
+
+  /**
+   * Salva as imagens em disco de forma assíncrona (Segundo Plano)
+   */
+  saveBase64ImagesToDiskSync(base64Map, orcamentoId) {
     const fs = require('fs');
     const path = require('path');
     const imagesDir = path.join(__dirname, '../../temp/images');
@@ -166,40 +192,28 @@ class OrcamentoService {
       fs.mkdirSync(imagesDir, { recursive: true });
     }
 
-    return Promise.all(items.map(async (item, index) => {
-      if (item.custom_image && item.custom_image.startsWith('data:image')) {
-        try {
-          const base64Content = item.custom_image.split(',')[1];
-          if (!base64Content) return item;
+    Object.keys(base64Map).forEach(index => {
+      try {
+        const base64Content = base64Map[index].split(',')[1];
+        if (!base64Content) return;
 
-          const buffer = Buffer.from(base64Content, 'base64');
-          // Forçar PNG para consistência ou detectar via MIME
-          const filename = `snapshot-${orcamentoId}-${index}.png`;
-          const filePath = path.join(imagesDir, filename);
-          
-          fs.writeFileSync(filePath, buffer);
-          
-          // Limpando o APP_URL para evitar barras duplas
-          const baseUrl = (process.env.APP_URL || '').replace(/\/$/, '');
-          const fullUrl = `${baseUrl}/apps/orcamento/api/orcamento/images/${orcamentoId}/${index}`;
-          console.log(`[ORCAMENTO SERVICE]: Snapshot salvo em disco: ${filename} (${buffer.length} bytes)`);
-          console.log(`[ORCAMENTO SERVICE]: URL Pública (Dentro do Shopify): ${fullUrl}`);
-          
-          // Rota de Debug (Estática - Acesso Direto para Verificação)
-          const debugUrl = `${baseUrl}/debug-images/${filename}`;
-          console.log(`[ORCAMENTO SERVICE]: 🕵️ URL de REVISÃO (Direta): ${debugUrl}`);
-          
-          // A URL gerada será consumida pelo App Proxy do Shopify
-          return {
-            ...item,
-            custom_image: `/apps/orcamento/api/orcamento/images/${orcamentoId}/${index}`
-          };
-        } catch (err) {
-          console.error(`[ORCAMENTO SERVICE]: Falha ao salvar Base64 no disco`, err.message);
-        }
+        const buffer = Buffer.from(base64Content, 'base64');
+        const filename = `snapshot-${orcamentoId}-${index}.png`;
+        const filePath = path.join(imagesDir, filename);
+        
+        fs.writeFileSync(filePath, buffer);
+        
+        // Limpando o APP_URL para evitar barras duplas
+        const baseUrl = (process.env.APP_URL || '').replace(/\/$/, '');
+        const fullUrl = `${baseUrl}/apps/orcamento/api/orcamento/images/${orcamentoId}/${index}`;
+        const debugUrl = `${baseUrl}/debug-images/${filename}`;
+
+        console.log(`[ORCAMENTO SERVICE]: Snapshot salvo em disco: ${filename} (${buffer.length} bytes)`);
+        console.log(`[ORCAMENTO SERVICE]: 🕵️ URL de REVISÃO (Direta): ${debugUrl}`);
+      } catch (err) {
+        console.error(`[ORCAMENTO SERVICE]: Falha ao salvar Base64 no disco`, err.message);
       }
-      return item;
-    }));
+    });
   }
 }
 
