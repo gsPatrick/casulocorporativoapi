@@ -13,6 +13,12 @@ require('./src/models/SyncQueue');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Log Global de Depuração: Registrar TUDO que chega ao servidor
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] [HTTP]: ${req.method} ${req.url}`);
+  next();
+});
+
 // Middlewares
 const path = require('path');
 
