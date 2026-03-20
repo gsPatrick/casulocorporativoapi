@@ -75,8 +75,12 @@ class PdfService {
     for (const item of orcamento.line_items_json) {
       let imageBase64 = null;
 
-      // Se houver snapshot (URL), baixar e converter para base64
-      if (item.custom_image && item.custom_image.startsWith('http')) {
+      // Se houver snapshot (URL ou Base64 direto)
+      if (item.custom_image && item.custom_image.startsWith('data:image')) {
+        // Se for Base64 (nosso novo método Pixel-Perfect), extraímos o conteúdo puro
+        imageBase64 = item.custom_image.split(',')[1] || item.custom_image;
+      } 
+      else if (item.custom_image && item.custom_image.startsWith('http')) {
         try {
           const imgRes = await axios.get(item.custom_image, { responseType: 'arraybuffer', timeout: 20000 });
           imageBase64 = Buffer.from(imgRes.data, 'binary').toString('base64');
