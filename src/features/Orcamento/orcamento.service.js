@@ -80,6 +80,7 @@ class OrcamentoService {
             <p><strong>Produto:</strong> ${item.product_id}</p>
             <p><strong>Especificação:</strong> ${item.technical_specification || 'N/A'}</p>
             ${item.custom_image ? `<p><img src="${item.custom_image}" width="200" style="border: 1px solid #ddd;" /></p>` : ''}
+            ${item.configuration_url ? `<p><a href="${item.configuration_url}" target="_blank" style="color: #814620; font-weight: bold;">[Ver Configuração 3D]</a></p>` : ''}
           </div>
         `).join('')}
         <hr />
@@ -102,6 +103,7 @@ class OrcamentoService {
         title: item.title || 'Produto',
         technical_specification: item.technical_specification || '',
         custom_image: item.custom_image || null,
+        configuration_url: item.configuration_url || null,
         customizer_state: item.customizer_state || {},
         quantity: item.quantity || 1
       };
