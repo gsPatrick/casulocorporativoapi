@@ -1,5 +1,10 @@
 const express = require('express');
 const router = express.Router();
+router.use((req, res, next) => {
+  console.log(`[ROUTER LOG]: Request Received at routes/index.js - Path: ${req.path}, URL: ${req.url}`);
+  next();
+});
+
 const orcamentoRoutes = require('../features/Orcamento/orcamento.routes');
 
 router.use('/orcamento', orcamentoRoutes);
