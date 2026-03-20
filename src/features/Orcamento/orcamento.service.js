@@ -178,7 +178,10 @@ class OrcamentoService {
           const filePath = path.join(imagesDir, filename);
           
           fs.writeFileSync(filePath, buffer);
+          
+          const fullUrl = `${process.env.APP_URL || ''}/apps/orcamento/api/orcamento/images/${orcamentoId}/${index}`;
           console.log(`[ORCAMENTO SERVICE]: Snapshot salvo em disco: ${filename} (${buffer.length} bytes)`);
+          console.log(`[ORCAMENTO SERVICE]: URL Pública do Snapshot: ${fullUrl}`);
           
           // A URL gerada será consumida pelo App Proxy do Shopify
           return {

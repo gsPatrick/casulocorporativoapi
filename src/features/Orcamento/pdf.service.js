@@ -80,12 +80,31 @@ class PdfService {
         // Se for Base64 (nosso novo método Pixel-Perfect), extraímos o conteúdo puro
         imageBase64 = item.custom_image.split(',')[1] || item.custom_image;
       } 
+      else if (item.custom_image && item.custom_image.startsWith('/apps/orcamento')) {
+        // Bypass de Rede: Se a imagem está salva no disco local, ler direto daqui
+        try {
+          // Extrair ID e INDEX da URL /apps/orcamento/api/orcamento/images/:id/:index
+          const urlParts = item.custom_image.split('/');
+          const id = urlParts[urlParts.length - 2];
+          const index = urlParts[urlParts.length - 1];
+          const filename = `snapshot-${id}-${index}.png`;
+          const filePath = path.join(__dirname, '../../temp/images', filename);
+          
+          if (fs.existsSync(filePath)) {
+            imageBase64 = fs.readFileSync(filePath).toString('base64');
+          } else {
+             console.warn(`[PDF SERVICE]: Arquivo não encontrado no disco: ${filename}`);
+          }
+        } catch (err) {
+          console.warn(`[PDF SERVICE]: Falha ao carregar imagem do disco:`, err.message);
+        }
+      }
       else if (item.custom_image && item.custom_image.startsWith('http')) {
         try {
           const imgRes = await axios.get(item.custom_image, { responseType: 'arraybuffer', timeout: 20000 });
           imageBase64 = Buffer.from(imgRes.data, 'binary').toString('base64');
         } catch (err) {
-          console.warn(`[PDF SERVICE]: Falha ao processar imagem para ${item.title}`, err.message);
+          console.warn(`[PDF SERVICE]: Falha ao processar imagem remota para ${item.title}`, err.message);
         }
       }
 
