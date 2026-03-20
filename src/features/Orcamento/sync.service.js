@@ -131,12 +131,25 @@ class SyncService {
           let imageUrl = item.custom_image;
 
           if (item.type === 'configurable' && item.custom_image) {
-            const { filename, filePath } = await this.downloadAndSaveImage(item.custom_image, orcamento.id);
-            currentLocalFile = filePath;
-            await task.update({ local_filename: filename });
-            
-            // Serve a imagem via URL temporária
-            imageUrl = `${process.env.APP_URL}/api/temp-images/${task.secret_token}/${filename}`;
+            if (item.custom_image.startsWith('/apps/orcamento')) {
+              // Bypass de Download: Se já é um snapshot local salvo pelo OrcamentoService
+              const urlParts = item.custom_image.split('/');
+              const id = urlParts[urlParts.length - 2];
+              const idx = urlParts[urlParts.length - 1];
+              const filename = `snapshot-${id}-${idx}.png`;
+              
+              // Simplesmente vinculamos o arquivo existente à tarefa para o Bling
+              await task.update({ local_filename: filename });
+              imageUrl = `${process.env.APP_URL}/api/orcamento/temp-images/${task.secret_token}/${filename}`;
+              console.log(`[SYNC SERVICE]: Vinculando snapshot local existente: ${filename}`);
+            } else {
+              const { filename, filePath } = await this.downloadAndSaveImage(item.custom_image, orcamento.id);
+              currentLocalFile = filePath;
+              await task.update({ local_filename: filename });
+              
+              // Serve a imagem via URL temporária com o token da task
+              imageUrl = `${process.env.APP_URL}/api/orcamento/temp-images/${task.secret_token}/${filename}`;
+            }
           }
 
           // Gera SKU baseado no produto + hash da especificação
