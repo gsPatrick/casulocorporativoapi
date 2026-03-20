@@ -227,17 +227,38 @@ class OrcamentoService {
 
     const promises = Object.keys(base64Map).map(async (index) => {
       const data = base64Map[index];
+      if (!data) return;
+
       const fileName = `snapshot-${orcamentoId}-${index}.png`;
       const filePath = path.join(imagesDir, fileName);
 
       try {
+        let buffer;
+        if (data.startsWith('data:image')) {
+          // É Base64 puro
+          const base64Data = data.replace(/^data:image\/\w+;base64,/, "");
+          buffer = Buffer.from(base64Data, 'base64');
+        } else if (data.startsWith('http')) {
+          // É uma URL externa (Snapshot do Angle3D)
+          console.log(`[ORCAMENTO SERVICE]: Baixando imagem externa: ${data}`);
+          const response = await axios.get(data, { 
+            responseType: 'arraybuffer',
+            timeout: 10000 // 10s timeout solicitado pelo usuário
+          });
+          buffer = Buffer.from(response.data, 'binary');
+        } else {
+          console.warn(`[ORCAMENTO SERVICE]: Formato de imagem desconhecido para item ${index}`);
+          return;
+        }
 
-        console.log(`[ORCAMENTO SERVICE]: Snapshot salvo em disco: ${filename} (${buffer.length} bytes)`);
-        console.log(`[ORCAMENTO SERVICE]: 🕵️ URL de REVISÃO (Direta): ${debugUrl}`);
+        fs.writeFileSync(filePath, buffer);
+        console.log(`[ORCAMENTO SERVICE]: Imagem salva em disco: ${fileName} (${buffer.length} bytes)`);
       } catch (err) {
-        console.error(`[ORCAMENTO SERVICE]: Falha ao salvar Base64 no disco`, err.message);
+        console.error(`[ORCAMENTO SERVICE]: Falha ao processar imagem ${index} (${data.substring(0, 30)}...):`, err.message);
       }
     });
+
+    await Promise.all(promises);
   }
 }
 

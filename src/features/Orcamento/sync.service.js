@@ -142,6 +142,9 @@ class SyncService {
               await task.update({ local_filename: filename });
               imageUrl = `${process.env.APP_URL}/api/orcamento/temp-images/${task.secret_token}/${filename}`;
               console.log(`[SYNC SERVICE]: Vinculando snapshot local existente: ${filename}`);
+            } else if (item.custom_image === '__pending__') {
+               // SNAPSHOT TARDIO: O orçamento foi criado mas a imagem pesada ainda está subindo (Double-Tap)
+               throw new Error('Aguardando upload do snapshot oficial (Double-Tap)...');
             } else {
               const { filename, filePath } = await this.downloadAndSaveImage(item.custom_image, orcamento.id);
               currentLocalFile = filePath;
