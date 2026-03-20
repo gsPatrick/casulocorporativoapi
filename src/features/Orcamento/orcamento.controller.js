@@ -112,6 +112,35 @@ class OrcamentoController {
       res.status(500).send('Erro ao gerar PDF: ' + error.message);
     }
   }
+  /**
+   * Serve a imagem capturada para o Meus Orçamentos (via Proxy)
+   */
+  async serveImage(req, res) {
+    try {
+      const { id, index } = req.params;
+      const path = require('path');
+      const fs = require('fs');
+
+      const filename = `snapshot-${id}-${index}.png`;
+      const filePath = path.join(__dirname, '../../temp/images', filename);
+
+      if (!fs.existsSync(filePath)) {
+        console.warn(`[ORCAMENTO CONTROLLER]: Snapshot não encontrado: ${filename}`);
+        return res.status(404).send('Imagem não encontrada');
+      }
+
+      const stat = fs.statSync(filePath);
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Length', stat.size);
+      res.setHeader('Cache-Control', 'public, max-age=604800'); // Cache por 7 dias
+
+      fs.createReadStream(filePath).pipe(res);
+
+    } catch (error) {
+      console.error('[ORCAMENTO CONTROLLER]: Erro ao servir imagem:', error.message);
+      res.status(500).send('Erro interno ao servir imagem');
+    }
+  }
 }
 
 module.exports = new OrcamentoController();

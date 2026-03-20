@@ -9,10 +9,16 @@ class OrcamentoService {
 
     // 1. Persistir no Postgres
     console.log(`[ORCAMENTO SERVICE]: Criando registro para cliente: ${data.customer_id || 'GUEST'}`);
+    
+    // Bypass Shopify Proxy Limit: Salvar imagens Base64 no disco e usar URLs
+    const orcamentoId = require('crypto').randomUUID(); // Gerar ID antecipado para o nome do arquivo
+    const finalItems = await this.saveBase64ImagesToDisk(parsedItems, orcamentoId);
+
     const orcamento = await Orcamento.create({
+      id: orcamentoId,
       shopify_customer_id: data.customer_id ? data.customer_id.toString() : null,
       lead_json: data.lead || null,
-      line_items_json: parsedItems,
+      line_items_json: finalItems,
       total_price: totalPrice,
       status: 'pendente'
     });
@@ -150,6 +156,41 @@ class OrcamentoService {
 
     console.log('Sincronizando orçamentos com Shopify Metaobjects...', orcamento.id);
     return `gid://shopify/Metaobject/mock-${orcamento.id.substring(0,8)}`;
+  }
+  async saveBase64ImagesToDisk(items, orcamentoId) {
+    const fs = require('fs');
+    const path = require('path');
+    const imagesDir = path.join(__dirname, '../../temp/images');
+    
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir, { recursive: true });
+    }
+
+    return Promise.all(items.map(async (item, index) => {
+      if (item.custom_image && item.custom_image.startsWith('data:image')) {
+        try {
+          const base64Content = item.custom_image.split(',')[1];
+          if (!base64Content) return item;
+
+          const buffer = Buffer.from(base64Content, 'base64');
+          // Forçar PNG para consistência ou detectar via MIME
+          const filename = `snapshot-${orcamentoId}-${index}.png`;
+          const filePath = path.join(imagesDir, filename);
+          
+          fs.writeFileSync(filePath, buffer);
+          console.log(`[ORCAMENTO SERVICE]: Snapshot salvo em disco: ${filename} (${buffer.length} bytes)`);
+          
+          // A URL gerada será consumida pelo App Proxy do Shopify
+          return {
+            ...item,
+            custom_image: `/apps/orcamento/api/orcamento/images/${orcamentoId}/${index}`
+          };
+        } catch (err) {
+          console.error(`[ORCAMENTO SERVICE]: Falha ao salvar Base64 no disco`, err.message);
+        }
+      }
+      return item;
+    }));
   }
 }
 
