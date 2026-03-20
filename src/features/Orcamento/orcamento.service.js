@@ -4,16 +4,18 @@ const nodemailer = require('nodemailer');
 
 class OrcamentoService {
   async createOrcamento(data) {
+    const startService = Date.now();
     const parsedItems = this.parseItems(data.items);
     const totalPrice = this.calculateTotalPrice(parsedItems);
 
     // 1. Persistir no Postgres
-    console.log(`[ORCAMENTO SERVICE]: Criando registro para cliente: ${data.customer_id || 'GUEST'}`);
     
     // Bypass Shopify 504 Timeout: Extraímos os Base64 pesados para processar em segundo plano
     const orcamentoId = require('crypto').randomUUID();
     const { items: finalItems, base64Map } = this.extractBase64Images(parsedItems, orcamentoId);
+    console.log(`[${new Date().toISOString()}] [SERVICE]: Extração de Base64 concluída em ${Date.now() - startService}ms`);
 
+    const dbStart = Date.now();
     const orcamento = await Orcamento.create({
       id: orcamentoId,
       shopify_customer_id: data.customer_id ? data.customer_id.toString() : null,
@@ -22,10 +24,11 @@ class OrcamentoService {
       total_price: totalPrice,
       status: 'pendente'
     });
+    console.log(`[${new Date().toISOString()}] [SERVICE]: Escrita no Postgres concluída em ${Date.now() - dbStart}ms (Total: ${Date.now() - startService}ms)`);
 
     // 2. Processar tarefas secundárias em Segundo Plano (Background)
     this.processPostCreationTasks(orcamento, base64Map).catch(err => {
-      console.error('Erro em tarefas pós-criação:', err.message);
+      console.error(`[${new Date().toISOString()}] [SERVICE ERROR]:`, err.message);
     });
 
     return orcamento;

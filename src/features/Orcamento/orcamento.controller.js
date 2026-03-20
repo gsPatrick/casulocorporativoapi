@@ -2,19 +2,29 @@ const orcamentoService = require('./orcamento.service');
 
 class OrcamentoController {
   async create(req, res) {
+    const startTime = Date.now();
+    console.log(`\n[${new Date().toISOString()}] >>> [CONTROLLER]: Recebendo solicitação de orçamento...`);
+    
     try {
+      const payloadSize = JSON.stringify(req.body).length;
+      console.log(`[${new Date().toISOString()}] [CONTROLLER]: Tamanho do Payload: ${(payloadSize / 1024 / 1024).toFixed(2)} MB`);
+
       const orcamento = await orcamentoService.createOrcamento(req.body);
       
-      // Enviar resposta IMEDIATAMENTE antes de tarefas de sincronização pesadas
+      const dbTime = Date.now();
+      console.log(`[${new Date().toISOString()}] [CONTROLLER]: Registro no DB concluído em ${dbTime - startTime}ms`);
+
+      // Enviar resposta IMEDIATAMENTE
       res.status(201).json(orcamento);
+      console.log(`[${new Date().toISOString()}] <<< [CONTROLLER]: Resposta 201 enviada em ${Date.now() - startTime}ms`);
       
       // Enfileirar para sincronização com o Bling (Background)
       const syncService = require('./sync.service');
       syncService.enqueue(orcamento.id).catch(err => {
-        console.error('Erro ao enfileirar para o Bling:', err.message);
+        console.error(`[${new Date().toISOString()}] [CONTROLLER]: Erro no enfileiramento:`, err.message);
       });
     } catch (error) {
-      console.error('Erro ao criar orçamento:', error);
+      console.error(`[${new Date().toISOString()}] [CONTROLLER ERROR]:`, error);
       res.status(500).json({ error: 'Erro interno ao processar orçamento' });
     }
   }
