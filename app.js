@@ -14,7 +14,6 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(require('path').isAbsolute ? (x => x) : (x => x)); // Placeholder for path check if needed
 const path = require('path');
 
 app.use(cors({
@@ -24,6 +23,9 @@ app.use(cors({
 }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+
+// Rota de Health Check (Direta)
+app.get('/ping', (req, res) => res.send('pong'));
 
 // Rota estática de Debug para imagens temporárias (Acesso Direto)
 app.use('/debug-images', express.static(path.join(__dirname, 'src/temp/images')));
