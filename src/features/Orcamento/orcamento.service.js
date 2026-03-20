@@ -169,10 +169,10 @@ class OrcamentoService {
    * Salva as imagens após a criação (Endpoint tardio para evitar timeout 504 no App Proxy)
    */
   async saveBase64ImagesAfterCreation(orcamentoId, base64Map) {
-    // 1. Salva os arquivos no disco (Método que já temos)
-    this.saveBase64ImagesToDiskSync(base64Map, orcamentoId);
+    // 1. Salva os arquivos no disco (Suporta Base64 e URL agora)
+    await this.processImagesMap(base64Map, orcamentoId);
     
-    // 2. Garante que o DB tem os links (Em caso do frontend não ter enviado os links previstos)
+    // 2. Garante que o DB tem os links
     const orcamento = await Orcamento.findByPk(orcamentoId);
     if (!orcamento) {
       console.error(`[SERVICE]: Orçamento ${orcamentoId} não encontrado para upload tardio.`);
@@ -203,7 +203,7 @@ class OrcamentoService {
   extractBase64Images(items, orcamentoId) {
     const base64Map = {};
     const finalItems = items.map((item, index) => {
-      if (item.custom_image && item.custom_image.startsWith('data:image')) {
+      if (item.custom_image && (item.custom_image.startsWith('data:image') || item.custom_image.startsWith('http'))) {
         base64Map[index] = item.custom_image;
         return {
           ...item,
@@ -216,32 +216,24 @@ class OrcamentoService {
   }
 
   /**
-   * Salva as imagens em disco de forma assíncrona (Segundo Plano)
+   * Processa o mapa de imagens, baixando URLs ou salvando Base64
    */
-  saveBase64ImagesToDiskSync(base64Map, orcamentoId) {
+  async processImagesMap(base64Map, orcamentoId) {
     const fs = require('fs');
     const path = require('path');
+    const axios = require('axios');
     const imagesDir = path.join(__dirname, '../../temp/images');
     
     if (!fs.existsSync(imagesDir)) {
       fs.mkdirSync(imagesDir, { recursive: true });
     }
 
-    Object.keys(base64Map).forEach(index => {
-      try {
-        const base64Content = base64Map[index].split(',')[1];
-        if (!base64Content) return;
+    const promises = Object.keys(base64Map).map(async (index) => {
+      const data = base64Map[index];
+      const fileName = `snapshot-${orcamentoId}-${index}.png`;
+      const filePath = path.join(imagesDir, fileName);
 
-        const buffer = Buffer.from(base64Content, 'base64');
-        const filename = `snapshot-${orcamentoId}-${index}.png`;
-        const filePath = path.join(imagesDir, filename);
-        
-        fs.writeFileSync(filePath, buffer);
-        
-        // Limpando o APP_URL para evitar barras duplas
-        const baseUrl = (process.env.APP_URL || '').replace(/\/$/, '');
-        const fullUrl = `${baseUrl}/apps/orcamento/api/orcamento/images/${orcamentoId}/${index}`;
-        const debugUrl = `${baseUrl}/debug-images/${filename}`;
+      try {
 
         console.log(`[ORCAMENTO SERVICE]: Snapshot salvo em disco: ${filename} (${buffer.length} bytes)`);
         console.log(`[ORCAMENTO SERVICE]: 🕵️ URL de REVISÃO (Direta): ${debugUrl}`);
