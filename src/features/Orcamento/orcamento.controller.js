@@ -141,32 +141,6 @@ class OrcamentoController {
       res.status(500).send('Erro interno ao servir imagem');
     }
   }
-  /**
-   * Rota de Debug (Sem HMAC) para verificar se a imagem salvou
-   */
-  async debugServeImage(req, res) {
-    try {
-      const { id, index } = req.params;
-      const path = require('path');
-      const fs = require('fs');
-
-      const filename = `snapshot-${id}-${index}.png`;
-      const filePath = path.join(__dirname, '../../temp/images', filename);
-
-      if (!fs.existsSync(filePath)) {
-        console.warn(`[DEBUG]: Arquivo não encontrado: ${filePath}`);
-        return res.status(404).send('Snapshot not found in disk');
-      }
-
-      const stat = fs.statSync(filePath);
-      res.setHeader('Content-Type', 'image/png');
-      res.setHeader('Content-Length', stat.size);
-      fs.createReadStream(filePath).pipe(res);
-    } catch (error) {
-      console.error('[DEBUG ERROR]:', error.message);
-      res.status(500).send('Error');
-    }
-  }
 }
 
 module.exports = new OrcamentoController();

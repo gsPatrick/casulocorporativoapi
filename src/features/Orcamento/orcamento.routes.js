@@ -14,9 +14,6 @@ const blingAuthController = require('./bling.auth.controller');
 router.get('/bling/auth', blingAuthController.authorize);
 router.get('/bling/callback', blingAuthController.callback);
 
-// Rota de Debug (Sem HMAC) para verificar se a imagem salvou
-router.get('/debug/images/:id/:index', orcamentoController.debugServeImage);
-
 // Todas as rotas via App Proxy precisam de HMAC
 router.use(validateShopifyProxy);
 

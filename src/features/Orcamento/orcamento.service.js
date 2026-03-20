@@ -185,8 +185,8 @@ class OrcamentoService {
           console.log(`[ORCAMENTO SERVICE]: Snapshot salvo em disco: ${filename} (${buffer.length} bytes)`);
           console.log(`[ORCAMENTO SERVICE]: URL Pública (Dentro do Shopify): ${fullUrl}`);
           
-          // Rota de Debug (Para ver direto se salvou, sem precisar do Proxy do Shopify)
-          const debugUrl = `${baseUrl}/api/orcamento/debug/images/${orcamentoId}/${index}`;
+          // Rota de Debug (Estática - Acesso Direto para Verificação)
+          const debugUrl = `${baseUrl}/debug-images/${filename}`;
           console.log(`[ORCAMENTO SERVICE]: 🕵️ URL de REVISÃO (Direta): ${debugUrl}`);
           
           // A URL gerada será consumida pelo App Proxy do Shopify
