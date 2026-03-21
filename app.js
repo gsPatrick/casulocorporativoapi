@@ -41,13 +41,25 @@ app.use('/api', routes);
 
 // Sincronizar Banco e Iniciar Servidor
 const startServer = async () => {
+  // Limpeza de emergência/teste: Remove imagens temporárias no startup
+  try {
+    const imagesDir = path.join(__dirname, 'src/temp/images');
+    if (fs.existsSync(imagesDir)) {
+      const files = fs.readdirSync(imagesDir);
+      files.forEach(file => { if (file !== '.gitkeep') fs.unlinkSync(path.join(imagesDir, file)); });
+      console.log(`🧹 Limpeza completa: ${files.length} imagens removidas do cache.`);
+    }
+  } catch (e) {
+    console.warn('⚠️ Falha na limpeza de startup:', e.message);
+  }
+
   try {
     await sequelize.authenticate();
     console.log('✅ Conexão com Postgres estabelecida com sucesso.');
     
-    // Sync models (Usa { alter: true } para proteger os dados existentes)
-    await sequelize.sync({ alter: true });
-    console.log('✅ Modelos sincronizados com o banco de dados.');
+    // Sync models (Usa { force: true } por solicitação do usuário para testes do zero)
+    await sequelize.sync({ force: true });
+    console.log('✅ Banco de dados RESETADO e sincronizado (MODO: TESTE DO ZERO).');
 
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);

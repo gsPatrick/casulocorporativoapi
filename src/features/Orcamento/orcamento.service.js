@@ -252,7 +252,9 @@ class OrcamentoService {
         }
 
         fs.writeFileSync(filePath, buffer);
+        const appUrl = process.env.APP_URL || 'http://localhost:3000';
         console.log(`[ORCAMENTO SERVICE]: Imagem salva em disco: ${fileName} (${buffer.length} bytes)`);
+        console.log(`[LINK DA IMAGEM]: ${appUrl}/api/orcamento/images/${orcamentoId}/${index}`);
       } catch (err) {
         console.error(`[ORCAMENTO SERVICE]: Falha ao processar imagem ${index} (${data.substring(0, 30)}...):`, err.message);
       }
