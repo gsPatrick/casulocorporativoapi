@@ -105,7 +105,9 @@ class OrcamentoService {
       ? `Lead: ${orcamento.lead_json.nome} (${orcamento.lead_json.whatsapp})` 
       : `Cliente Shopify ID: ${orcamento.shopify_customer_id}`;
 
-    const pdfLink = `${process.env.APP_URL || 'https://sua-api.com'}/api/orcamento/${orcamento.id}/pdf`;
+    let baseUrl = process.env.APP_URL || 'https://sua-api.com';
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+    const pdfLink = `${baseUrl}/api/orcamento/${orcamento.id}/pdf`;
 
     const mailOptions = {
       from: '"Casulo B2B" <no-reply@casulo.com>',
@@ -233,7 +235,8 @@ class OrcamentoService {
    */
   extractBase64Images(items, orcamentoId) {
     const base64Map = {};
-    const appUrl = process.env.APP_URL || 'https://sua-api.com';
+    let appUrl = process.env.APP_URL || 'https://sua-api.com';
+    if (appUrl.endsWith('/')) appUrl = appUrl.slice(0, -1);
     
     const finalItems = items.map((item, index) => {
       if (item.custom_image && (item.custom_image.startsWith('data:image') || item.custom_image.startsWith('http'))) {
@@ -288,7 +291,8 @@ class OrcamentoService {
         }
 
         fs.writeFileSync(filePath, buffer);
-        const appUrl = process.env.APP_URL || 'http://localhost:3000';
+        let appUrl = process.env.APP_URL || 'http://localhost:3000';
+        if (appUrl.endsWith('/')) appUrl = appUrl.slice(0, -1);
         console.log(`[ORCAMENTO SERVICE]: Imagem salva em disco: ${fileName} (${buffer.length} bytes)`);
         console.log(`[LINK DA IMAGEM]: ${appUrl}/api/orcamento/images/${orcamentoId}/${index}`);
       } catch (err) {
