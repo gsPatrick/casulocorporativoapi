@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const fs = require('fs');
 require('dotenv').config();
 
 const sequelize = require('./src/config/database');
@@ -9,6 +10,7 @@ const routes = require('./src/routes');
 // Importar modelos para garantir que o Sequelize os mapeie antes do .sync()
 require('./src/models/Orcamento');
 require('./src/models/SyncQueue');
+require('./src/models/CartItem');
 
 const app = express();
 const PORT = process.env.PORT || 3000;

@@ -179,6 +179,83 @@ class OrcamentoController {
       res.status(500).send('Erro interno ao servir imagem');
     }
   }
+  /**
+   * Sincroniza um item do carrinho (Página do Produto -> API)
+   * Salva a imagem e associa ao customer e variant
+   */
+  async syncItem(req, res) {
+    const { customer_id, variant_id, image, technical_specification } = req.body;
+    
+    if (!customer_id || !variant_id) {
+      return res.status(400).json({ error: 'customer_id e variant_id são obrigatórios' });
+    }
+
+    try {
+      const CartItem = require('../../models/CartItem');
+      const path = require('path');
+      const fs = require('fs');
+
+      // 1. Salvar imagem no disco (temp/images)
+      let imageUrl = null;
+      if (image && image.startsWith('data:image')) {
+        const imagesDir = path.join(__dirname, '../../temp/images');
+        if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
+
+        const filename = `sync-${customer_id}-${variant_id}.png`;
+        const filePath = path.join(imagesDir, filename);
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+        fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+        
+        // Em produção, isso seria uma URL absoluta. No proxy:
+        imageUrl = `/apps/orcamento/sync-image/${customer_id}/${variant_id}`;
+      }
+
+      // 2. Atualizar ou Criar registro no DB
+      const [item, created] = await CartItem.findOrCreate({
+        where: { shopify_customer_id: customer_id.toString(), variant_id: variant_id.toString() },
+        defaults: {
+          technical_specification,
+          image_url: imageUrl,
+          last_snapshot: image
+        }
+      });
+
+      if (!created) {
+        await item.update({
+          technical_specification,
+          image_url: imageUrl,
+          last_snapshot: image
+        });
+      }
+
+      console.log(`[SYNC]: Item ${variant_id} sincronizado para cliente ${customer_id}`);
+      res.json({ success: true, image_url: imageUrl });
+    } catch (error) {
+      console.error('[SYNC ERROR]:', error.message);
+      res.status(500).json({ error: 'Erro ao sincronizar item' });
+    }
+  /**
+   * Serve a imagem sincronizada (staged) para o cliente/variante
+   */
+  async serveSyncedImage(req, res) {
+    try {
+      const { customer_id, variant_id } = req.params;
+      const path = require('path');
+      const fs = require('fs');
+
+      const filename = `sync-${customer_id}-${variant_id}.png`;
+      const filePath = path.join(__dirname, '../../temp/images', filename);
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).send('Imagem sincronizada não encontrada');
+      }
+
+      res.setHeader('Content-Type', 'image/png');
+      fs.createReadStream(filePath).pipe(res);
+    } catch (error) {
+      res.status(500).send('Erro ao servir imagem sincronizada');
+    }
+  }
 }
 
 module.exports = new OrcamentoController();

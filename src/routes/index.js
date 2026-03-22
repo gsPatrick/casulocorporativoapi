@@ -7,9 +7,16 @@ router.use((req, res, next) => {
 
 const orcamentoRoutes = require('../features/Orcamento/orcamento.routes');
 
+// Rotas unificadas para suportar tanto chamadas diretas quanto via App Proxy
+// O App Proxy do Shopify adiciona prefixos que podem causar duplicidade (/api/api/...)
 router.use('/orcamento', orcamentoRoutes);
-router.use('/api/orcamento', orcamentoRoutes); // Tolerância para duplicidade de rota
-router.use('/', orcamentoRoutes); // Tolerância universal (Caso o Proxy remova o segmento /orcamento)
+router.use('/api/orcamento', orcamentoRoutes); 
+
+// Rota raiz para redirecionamentos e redundância
+router.use('/', (req, res, next) => {
+  if (req.url.includes('/orcamento')) return next(); // Deixa passar se for orcamento
+  next();
+}); // Caso o Proxy remova o segmento /orcamento
 
 // Rota de saúde para o App Proxy (acessível via /api/health)
 router.get('/health', (req, res) => {

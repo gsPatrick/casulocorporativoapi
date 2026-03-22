@@ -14,13 +14,18 @@ const blingAuthController = require('./bling.auth.controller');
 router.get('/bling/auth', blingAuthController.authorize);
 router.get('/bling/callback', blingAuthController.callback);
 
+// Rotas públicas ou que não suportam HMAC via App Proxy (ex: <img> tags)
+router.get('/images/:id/:index', orcamentoController.serveImage);
+router.get('/sync-image/:customer_id/:variant_id', orcamentoController.serveSyncedImage);
+
 // Todas as rotas via App Proxy precisam de HMAC
 router.use(validateShopifyProxy);
 
 router.post('/', orcamentoController.create);
+router.post('/sync-item', orcamentoController.syncItem);
 router.post('/:id/snapshot', orcamentoController.uploadSnapshot);
 router.get('/:id/pdf', orcamentoController.generatePDF);
-router.get('/images/:id/:index', orcamentoController.serveImage); // Nova rota de bypass
+
 
 // Rota sensível que exige confirmação da sessão do cliente (Validado por Shopify/Customer ID)
 router.get('/cliente/:customer_id', validateCustomerSession, orcamentoController.listByCustomer);

@@ -12,7 +12,23 @@ class OrcamentoService {
     
     // Bypass Shopify 504 Timeout: Extraímos os Base64 pesados para processar em segundo plano
     const orcamentoId = require('crypto').randomUUID();
-    const { items: finalItems, base64Map } = this.extractBase64Images(parsedItems, orcamentoId);
+    
+    // 1.5 Sincronização com CartItem (v3.7.0): Se o item não tem imagem mas foi sincronizado antes
+    const CartItem = require('../../models/CartItem');
+    const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
+      if (!item.custom_image && data.customer_id) {
+        const synced = await CartItem.findOne({
+          where: { shopify_customer_id: data.customer_id.toString(), variant_id: item.variant_id?.toString() }
+        });
+        if (synced && (synced.last_snapshot || synced.image_url)) {
+          console.log(`[SERVICE]: Recuperando imagem sincronizada para variant ${item.variant_id}`);
+          return { ...item, custom_image: synced.last_snapshot || synced.image_url };
+        }
+      }
+      return item;
+    }));
+
+    const { items: finalItems, base64Map } = this.extractBase64Images(enrichedItems, orcamentoId);
     console.log(`[${new Date().toISOString()}] [SERVICE]: Extração de Base64 concluída em ${Date.now() - startService}ms`);
 
     const dbStart = Date.now();

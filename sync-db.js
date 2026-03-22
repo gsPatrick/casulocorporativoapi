@@ -1,6 +1,7 @@
 const sequelize = require('./src/config/database');
 require('./src/models/Orcamento');
 require('./src/models/SyncQueue');
+require('./src/models/CartItem');
 
 async function syncDb() {
   try {
