@@ -234,6 +234,7 @@ class OrcamentoController {
       console.error('[SYNC ERROR]:', error.message);
       res.status(500).json({ error: 'Erro ao sincronizar item' });
     }
+  }
   /**
    * Serve a imagem sincronizada (staged) para o cliente/variante
    */
