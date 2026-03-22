@@ -11,6 +11,7 @@ class OrcamentoService {
     // 1. Persistir no Postgres
     
     // Bypass Shopify 504 Timeout: Extraímos os Base64 pesados para processar em segundo plano
+    const orcamentoId = require('crypto').randomUUID();
     // 1.5 Sincronização com CartItem (v3.8.0): Se o item não tem imagem mas foi sincronizado antes
     const CartItem = require('../../models/CartItem');
     const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
@@ -55,8 +56,6 @@ class OrcamentoService {
         console.error('[SERVICE ERROR]: Falha ao limpar CartItem:', e.message);
       });
     }
-
-    return orcamento;
 
     return orcamento;
   }
