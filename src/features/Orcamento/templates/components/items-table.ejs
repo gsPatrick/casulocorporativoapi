@@ -4,6 +4,7 @@
             <th style="padding: 10px; border: 1px solid #ddd; width: 30px;">#</th>
             <th style="padding: 10px; border: 1px solid #ddd; width: 80px;">Imagem</th>
             <th style="padding: 10px; border: 1px solid #ddd;">Descrição do produto/serviço</th>
+            <th style="padding: 10px; border: 1px solid #ddd; width: 100px;">Info Adicional</th>
             <th style="padding: 10px; border: 1px solid #ddd; width: 40px; text-align: center;">Qtd.</th>
             <th style="padding: 10px; border: 1px solid #ddd; width: 80px; text-align: right;">Preço un.</th>
             <th style="padding: 10px; border: 1px solid #ddd; width: 80px; text-align: right;">Preço total</th>
@@ -34,6 +35,9 @@
                             <a href="<%= item.configuration_url %>" style="color: #814620; text-decoration: none; font-weight: bold; font-size: 10px; border-bottom: 1px solid #814620;">[Ver Configuração 3D]</a>
                         </div>
                     <% } %>
+                </td>
+                <td style="padding: 10px; border: 1px solid #ddd; vertical-align: top; font-size: 10px; color: #444; line-height: 1.4;">
+                    <%= item.additional_info ? item.additional_info.replace(/\n/g, '<br>') : '-' %>
                 </td>
                 <td style="padding: 10px; border: 1px solid #ddd; text-align: center; vertical-align: top;">
                     <%= item.quantity %>

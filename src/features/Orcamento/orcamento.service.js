@@ -148,6 +148,7 @@ class OrcamentoService {
         variant_id: item.variant_id || null,
         title: item.title || 'Produto',
         technical_specification: item.technical_specification || '',
+        additional_info: item.additional_info || '',
         custom_image: item.custom_image || null,
         configuration_url: item.configuration_url || null,
         customizer_state: item.customizer_state || {},
