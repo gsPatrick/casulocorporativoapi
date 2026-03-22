@@ -61,7 +61,7 @@
         <%- include('components/header') %>
 
         <div class="proposta-header">
-            <h1>Proposta Nº <%= id %></h1>
+            <h1>Proposta Nº <%= id.substring(0, 8).toUpperCase() %></h1>
         </div>
 
         <div class="box-info">

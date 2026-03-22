@@ -115,7 +115,7 @@ class OrcamentoService {
       subject: `Novo Orçamento: ${isLead ? orcamento.lead_json.nome : 'Cliente #' + orcamento.shopify_customer_id}`,
       html: `
         <h2>Nova Solicitação de Orçamento</h2>
-        <p><strong>ID:</strong> ${orcamento.id}</p>
+        <p><strong>ID da Proposta:</strong> ${orcamento.id.substring(0, 8).toUpperCase()}</p>
         <p><strong>Origem:</strong> ${clientInfo}</p>
         <p><strong>E-mail:</strong> ${isLead ? orcamento.lead_json.email : 'N/A (Logado)'}</p>
         <p><strong>Valor Estimado:</strong> R$ ${parseFloat(orcamento.total_price).toFixed(2)}</p>
