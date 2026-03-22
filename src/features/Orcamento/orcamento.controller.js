@@ -9,6 +9,12 @@ class OrcamentoController {
       const payloadSize = JSON.stringify(req.body).length;
       console.log(`[${new Date().toISOString()}] [CONTROLLER]: Tamanho do Payload: ${(payloadSize / 1024 / 1024).toFixed(2)} MB`);
 
+      // Fallback para customer_id da query (App Proxy)
+      if (!req.body.customer_id && req.query.logged_in_customer_id) {
+        req.body.customer_id = req.query.logged_in_customer_id;
+        console.log(`[CONTROLLER INFO]: Usando customer_id da query: ${req.body.customer_id}`);
+      }
+
       const orcamento = await orcamentoService.createOrcamento(req.body);
       
       const dbTime = Date.now();
@@ -185,9 +191,13 @@ class OrcamentoController {
    */
   async syncItem(req, res) {
     console.log(`\n[${new Date().toISOString()}] >>> [SYNC REQ]: Recebendo sincronização de item...`);
-    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Variant ID: ${variant_id}`);
+    
+    // Fallback para customer_id da query (App Proxy)
+    const customer_id = req.body.customer_id || req.query.logged_in_customer_id;
+    const variant_id = req.body.variant_id;
+    const { image, technical_specification } = req.body;
 
-    if (!customer_id || !variant_id) {
+    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Variant ID: ${variant_id}`);
       console.warn('[SYNC WARNING]: customer_id ou variant_id ausentes!');
       return res.status(400).json({ error: 'customer_id e variant_id são obrigatórios' });
     }
