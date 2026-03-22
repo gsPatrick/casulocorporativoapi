@@ -229,12 +229,14 @@ class OrcamentoService {
    */
   extractBase64Images(items, orcamentoId) {
     const base64Map = {};
+    const appUrl = process.env.APP_URL || 'https://sua-api.com';
+    
     const finalItems = items.map((item, index) => {
       if (item.custom_image && (item.custom_image.startsWith('data:image') || item.custom_image.startsWith('http'))) {
         base64Map[index] = item.custom_image;
         return {
           ...item,
-          custom_image: `/apps/orcamento/images/${orcamentoId}/${index}`
+          custom_image: `${appUrl}/api/orcamento/images/${orcamentoId}/${index}`
         };
       }
       return item;
