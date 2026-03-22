@@ -198,6 +198,8 @@ class OrcamentoController {
     const { image, technical_specification } = req.body;
 
     console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Variant ID: ${variant_id}`);
+
+    if (!customer_id || !variant_id) {
       console.warn('[SYNC WARNING]: customer_id ou variant_id ausentes!');
       return res.status(400).json({ error: 'customer_id e variant_id são obrigatórios' });
     }
