@@ -15,15 +15,20 @@ class OrcamentoService {
     // 1.5 Sincronização com CartItem (v3.8.0): Se o item não tem imagem mas foi sincronizado antes
     const CartItem = require('../../models/CartItem');
     const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
+      console.log(`[SERVICE DEBUG]: Item recebido - VariantID: ${item.variant_id}, CID: ${data.customer_id}`);
       if (data.customer_id && item.variant_id) {
-        console.log(`[SERVICE DEBUG]: Procurando imagem sincronizada para variant ${item.variant_id} do cliente ${data.customer_id}`);
         const synced = await CartItem.findOne({
-          where: { shopify_customer_id: data.customer_id.toString(), variant_id: item.variant_id.toString() }
+          where: { 
+            shopify_customer_id: data.customer_id.toString(), 
+            variant_id: item.variant_id.toString() 
+          }
         });
         
         if (synced && (synced.last_snapshot || synced.image_url)) {
-          console.log(`[SERVICE SUCCESS]: Imagem sincronizada ENCONTRADA para variant ${item.variant_id}`);
+          console.log(`[SERVICE SUCCESS]: Snapshot recuperado para Variant ${item.variant_id}`);
           return { ...item, custom_image: synced.last_snapshot || synced.image_url };
+        } else {
+          console.log(`[SERVICE INFO]: Nenhum snapshot no banco para Variant ${item.variant_id}`);
         }
       }
       return item;
