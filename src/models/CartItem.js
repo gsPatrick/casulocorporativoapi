@@ -16,6 +16,10 @@ const CartItem = sequelize.define('CartItem', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  product_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   technical_specification: {
     type: DataTypes.TEXT,
     allowNull: true,

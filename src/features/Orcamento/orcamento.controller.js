@@ -195,9 +195,10 @@ class OrcamentoController {
     // Fallback para customer_id da query (App Proxy)
     const customer_id = req.body.customer_id || req.query.logged_in_customer_id;
     const variant_id = req.body.variant_id;
+    const product_id = req.body.product_id;
     const { image, technical_specification } = req.body;
 
-    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Variant ID: ${variant_id}`);
+    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Variant ID: ${variant_id}, Product ID: ${product_id}`);
 
     if (!customer_id || !variant_id) {
       console.warn('[SYNC WARNING]: customer_id ou variant_id ausentes!');
@@ -232,6 +233,7 @@ class OrcamentoController {
       const [item, created] = await CartItem.findOrCreate({
         where: { shopify_customer_id: customer_id.toString(), variant_id: variant_id.toString() },
         defaults: {
+          product_id: product_id ? product_id.toString() : null,
           technical_specification,
           image_url: imageUrl,
           last_snapshot: image
@@ -241,6 +243,7 @@ class OrcamentoController {
       if (!created) {
         console.log('[SYNC DB]: Registro existente encontrado. Atualizando...');
         await item.update({
+          product_id: product_id ? product_id.toString() : item.product_id,
           technical_specification,
           image_url: imageUrl,
           last_snapshot: image

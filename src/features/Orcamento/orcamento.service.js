@@ -16,21 +16,25 @@ class OrcamentoService {
     const CartItem = require('../../models/CartItem');
     const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
       console.log(`[SERVICE DEBUG]: Item recebido - VariantID: ${item.variant_id}, CID: ${data.customer_id}`);
-      if (data.customer_id && item.variant_id) {
         const synced = await CartItem.findOne({
           where: { 
             shopify_customer_id: data.customer_id.toString(), 
             variant_id: item.variant_id.toString() 
           }
-        });
+        }) || (item.product_id ? await CartItem.findOne({
+          where: { 
+            shopify_customer_id: data.customer_id.toString(), 
+            product_id: item.product_id.toString() 
+          },
+          order: [['updatedAt', 'DESC']]
+        }) : null);
         
         if (synced && (synced.last_snapshot || synced.image_url)) {
-          console.log(`[SERVICE SUCCESS]: Snapshot recuperado para Variant ${item.variant_id}`);
+          console.log(`[SERVICE SUCCESS]: Snapshot recuperado para Variant ${item.variant_id} ${synced.product_id ? '(via Product Fallback)' : ''}`);
           return { ...item, custom_image: synced.last_snapshot || synced.image_url };
         } else {
-          console.log(`[SERVICE INFO]: Nenhum snapshot no banco para Variant ${item.variant_id}`);
+          console.log(`[SERVICE INFO]: Nenhum snapshot no banco para Variant ${item.variant_id} ou Product ${item.product_id}`);
         }
-      }
       return item;
     }));
 
