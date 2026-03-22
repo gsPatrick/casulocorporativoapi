@@ -14,14 +14,16 @@ class OrcamentoService {
     const orcamentoId = require('crypto').randomUUID();
     
     // 1.5 Sincronização com CartItem (v3.7.0): Se o item não tem imagem mas foi sincronizado antes
-    const CartItem = require('../../models/CartItem');
     const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
-      if (!item.custom_image && data.customer_id) {
+      const isConfigurable = item.type === 'configurable' || item.technical_specification;
+      
+      if (isConfigurable && data.customer_id) {
         const synced = await CartItem.findOne({
           where: { shopify_customer_id: data.customer_id.toString(), variant_id: item.variant_id?.toString() }
         });
+        
         if (synced && (synced.last_snapshot || synced.image_url)) {
-          console.log(`[SERVICE]: Recuperando imagem sincronizada para variant ${item.variant_id}`);
+          console.log(`[SERVICE SUCCESS]: Recuperando imagem sincronizada para variant ${item.variant_id} do cliente ${data.customer_id}`);
           return { ...item, custom_image: synced.last_snapshot || synced.image_url };
         }
       }

@@ -184,9 +184,11 @@ class OrcamentoController {
    * Salva a imagem e associa ao customer e variant
    */
   async syncItem(req, res) {
-    const { customer_id, variant_id, image, technical_specification } = req.body;
-    
+    console.log(`\n[${new Date().toISOString()}] >>> [SYNC REQ]: Recebendo sincronização de item...`);
+    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Variant ID: ${variant_id}`);
+
     if (!customer_id || !variant_id) {
+      console.warn('[SYNC WARNING]: customer_id ou variant_id ausentes!');
       return res.status(400).json({ error: 'customer_id e variant_id são obrigatórios' });
     }
 
@@ -198,6 +200,7 @@ class OrcamentoController {
       // 1. Salvar imagem no disco (temp/images)
       let imageUrl = null;
       if (image && image.startsWith('data:image')) {
+        console.log(`[SYNC DEBUG]: Processando imagem Base64 (${(image.length / 1024).toFixed(1)} KB)`);
         const imagesDir = path.join(__dirname, '../../temp/images');
         if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
 
@@ -206,11 +209,14 @@ class OrcamentoController {
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
         fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
         
-        // Em produção, isso seria uma URL absoluta. No proxy:
         imageUrl = `/apps/orcamento/sync-image/${customer_id}/${variant_id}`;
+        console.log(`[SYNC SUCCESS]: Imagem salva em disco: ${filename}`);
+      } else {
+        console.warn('[SYNC WARNING]: Nenhuma imagem Base64 recebida para sincronização.');
       }
 
       // 2. Atualizar ou Criar registro no DB
+      console.log('[SYNC DB]: Buscando/Criando registro no banco de dados...');
       const [item, created] = await CartItem.findOrCreate({
         where: { shopify_customer_id: customer_id.toString(), variant_id: variant_id.toString() },
         defaults: {
@@ -221,14 +227,17 @@ class OrcamentoController {
       });
 
       if (!created) {
+        console.log('[SYNC DB]: Registro existente encontrado. Atualizando...');
         await item.update({
           technical_specification,
           image_url: imageUrl,
           last_snapshot: image
         });
+      } else {
+        console.log('[SYNC DB]: Novo registro de item criado com sucesso.');
       }
 
-      console.log(`[SYNC]: Item ${variant_id} sincronizado para cliente ${customer_id}`);
+      console.log(`[${new Date().toISOString()}] <<< [SYNC SUCCESS]: Item ${variant_id} sincronizado para cliente ${customer_id}`);
       res.json({ success: true, image_url: imageUrl });
     } catch (error) {
       console.error('[SYNC ERROR]:', error.message);
