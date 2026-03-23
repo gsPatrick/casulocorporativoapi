@@ -112,7 +112,6 @@ class OrcamentoService {
         <p><strong>ID da Proposta:</strong> ${orcamento.id.substring(0, 8).toUpperCase()}</p>
         <p><strong>Origem:</strong> ${clientInfo}</p>
         <p><strong>E-mail:</strong> ${isLead ? orcamento.lead_json.email : 'N/A (Logado)'}</p>
-        <p><strong>Valor Estimado:</strong> R$ ${parseFloat(orcamento.total_price).toFixed(2)}</p>
         <hr />
         <p><strong>Itens:</strong></p>
         ${orcamento.line_items_json.map(item => `
