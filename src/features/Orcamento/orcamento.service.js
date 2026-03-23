@@ -126,14 +126,29 @@ class OrcamentoService {
         <p>Baixar proposta completa em PDF: <a href="${pdfLink}">Link da Proposta</a></p>
     `;
 
+    // C. Gerar PDF para anexo
+    let pdfBuffer = null;
+    try {
+      const pdfService = require('./pdf.service');
+      pdfBuffer = await pdfService.getOrcamentoPDFBuffer(orcamento);
+    } catch (err) {
+      console.error('[SERVICE]: Falha ao gerar buffer do PDF para anexo:', err.message);
+    }
+
     try {
       const data = await resend.emails.send({
         from: fromEmail,
         to: toEmail,
         subject: `Novo Orçamento: ${isLead ? orcamento.lead_json.nome : 'Cliente #' + orcamento.shopify_customer_id}`,
-        html: htmlContent
+        html: htmlContent,
+        attachments: pdfBuffer ? [
+          {
+            filename: `Proposta-Casulo-${orcamento.id.substring(0, 8).toUpperCase()}.pdf`,
+            content: pdfBuffer,
+          }
+        ] : []
       });
-      console.log('[RESEND]: Orçamento enviado com sucesso via Resend API.', data);
+      console.log('[RESEND]: Orçamento enviado com sucesso via Resend API (com anexo).', data);
       return data;
     } catch (error) {
       console.error('[RESEND ERROR]: Erro ao enviar notificação comercial:', error);

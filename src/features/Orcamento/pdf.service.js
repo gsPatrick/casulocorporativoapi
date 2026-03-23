@@ -8,18 +8,17 @@ class PdfService {
   /**
    * Gera um PDF a partir de templates EJS usando Puppeteer para fidelidade visual total.
    */
-  async generateOrcamentoPDF(orcamento, res) {
-    console.log(`[PDF SERVICE]: Iniciando geração pixel-perfect para orçamento #${orcamento.id}`);
+  /**
+   * Gera o buffer do PDF para uso interno (anexos, etc)
+   */
+  async getOrcamentoPDFBuffer(orcamento) {
+    console.log(`[PDF SERVICE]: Gerando Buffer para orçamento #${orcamento.id}`);
     
     try {
-      // 1. Preparar dados para o template (Base64 de imagens, formatação de preços)
       const templateData = await this.prepareTemplateData(orcamento);
-
-      // 2. Renderizar EJS para HTML
       const templatePath = path.join(__dirname, 'templates', 'main.ejs');
       const html = await ejs.renderFile(templatePath, templateData);
 
-      // 3. Usar Puppeteer para converter HTML em PDF
       const browser = await puppeteer.launch({
         headless: 'new',
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
@@ -28,32 +27,34 @@ class PdfService {
 
       try {
         const page = await browser.newPage();
-        
-        // Emular media type 'screen' para garantir que cores/backgrounds saiam no PDF
         await page.emulateMediaType('screen');
-        
-        await page.setContent(html, { 
-          waitUntil: 'networkidle0',
-          timeout: 30000 
-        });
+        await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
 
-        const pdfBuffer = await page.pdf({
+        return await page.pdf({
           format: 'A4',
           printBackground: true,
           margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' },
           displayHeaderFooter: false
         });
-
-        // 4. Enviar o buffer para a resposta Express
-        res.end(pdfBuffer);
-
       } finally {
         await browser.close();
       }
-
     } catch (error) {
-      console.error('[PDF SERVICE ERROR]:', error.message);
+      console.error('[PDF SERVICE BUFFER ERROR]:', error.message);
       throw error;
+    }
+  }
+
+  /**
+   * Gera um PDF e faz o stream direto para a resposta Express
+   */
+  async generateOrcamentoPDF(orcamento, res) {
+    try {
+      const pdfBuffer = await this.getOrcamentoPDFBuffer(orcamento);
+      res.end(pdfBuffer);
+    } catch (error) {
+       console.error('[PDF SERVICE STREAM ERROR]:', error.message);
+       if (!res.headersSent) res.status(500).send('Erro ao gerar PDF');
     }
   }
 
