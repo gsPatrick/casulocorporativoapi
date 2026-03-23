@@ -16,7 +16,9 @@ class OrcamentoService {
     const CartItem = require('../../models/CartItem');
     const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
       console.log(`[SERVICE DEBUG]: Item recebido - VariantID: ${item.variant_id}, CID: ${data.customer_id}`);
-        const synced = await CartItem.findOne({
+        
+        // Só busca item sincronizado se houver um cliente logado
+        const synced = data.customer_id ? (await CartItem.findOne({
           where: { 
             shopify_customer_id: data.customer_id.toString(), 
             variant_id: item.variant_id.toString() 
@@ -27,7 +29,7 @@ class OrcamentoService {
             product_id: item.product_id.toString() 
           },
           order: [['updatedAt', 'DESC']]
-        }) : null);
+        }) : null)) : null;
         
         if (synced && (synced.last_snapshot || synced.image_url)) {
           console.log(`[SERVICE SUCCESS]: Snapshot recuperado para Variant ${item.variant_id} ${synced.product_id ? '(via Product Fallback)' : ''}`);
