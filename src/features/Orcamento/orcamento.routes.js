@@ -22,6 +22,7 @@ router.get('/sync-image/:customer_id/:variant_id', orcamentoController.serveSync
 // Para o modo Guest funcionar via URL Direta, estas rotas ficam acima do HMAC
 router.post('/', orcamentoController.create);
 router.post('/:id/snapshot', orcamentoController.uploadSnapshot);
+router.get('/:id/pdf', orcamentoController.generatePDF);
 
 // Todas as rotas abaixo via App Proxy precisam de HMAC (Segurança Obrigatória)
 router.use(validateShopifyProxy);
