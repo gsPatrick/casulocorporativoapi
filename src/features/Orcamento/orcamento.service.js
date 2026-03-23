@@ -105,7 +105,7 @@ class OrcamentoService {
     const pdfLink = `${baseUrl}/api/orcamento/${orcamento.id}/pdf`;
 
     const fromEmail = 'Casulo Corporativo <contato@casulocorporativo.com.br>'; 
-    const toEmail = 'vendas@casulocorporativo.com.br';
+    const toEmail = ['vendas@casulocorporativo.com.br', 'patricksiqueira.developer@gmail.com'];
 
     const htmlContent = `
         <h2>Nova Solicitação de Orçamento</h2>
