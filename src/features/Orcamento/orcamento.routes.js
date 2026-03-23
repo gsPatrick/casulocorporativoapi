@@ -18,12 +18,15 @@ router.get('/bling/callback', blingAuthController.callback);
 router.get('/images/:id/:index', orcamentoController.serveImage);
 router.get('/sync-image/:customer_id/:variant_id', orcamentoController.serveSyncedImage);
 
-// Todas as rotas via App Proxy precisam de HMAC
+// Rotas que podem ser chamadas tanto via Proxy quanto Diretamente (Configuração Híbrida)
+// Para o modo Guest funcionar via URL Direta, estas rotas ficam acima do HMAC
+router.post('/', orcamentoController.create);
+router.post('/:id/snapshot', orcamentoController.uploadSnapshot);
+
+// Todas as rotas abaixo via App Proxy precisam de HMAC (Segurança Obrigatória)
 router.use(validateShopifyProxy);
 
-router.post('/', orcamentoController.create);
 router.post('/sync-item', orcamentoController.syncItem);
-router.post('/:id/snapshot', orcamentoController.uploadSnapshot);
 router.get('/:id/pdf', orcamentoController.generatePDF);
 
 
