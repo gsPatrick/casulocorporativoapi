@@ -104,7 +104,7 @@ class OrcamentoService {
     if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
     const pdfLink = `${baseUrl}/api/orcamento/${orcamento.id}/pdf`;
 
-    const fromEmail = 'onboarding@resend.dev'; // Remetente temporário ou fixo
+    const fromEmail = 'Casulo Corporativo <contato@casulocorporativo.com.br>'; 
     const toEmail = 'vendas@casulocorporativo.com.br';
 
     const htmlContent = `
