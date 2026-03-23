@@ -1,6 +1,6 @@
 const Orcamento = require('../../models/Orcamento');
 const shopify = require('../../config/shopify');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 class OrcamentoService {
   async createOrcamento(data) {
@@ -91,29 +91,21 @@ class OrcamentoService {
   }
 
   async sendCommercialNotification(orcamento) {
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.mailtrap.io',
-      port: process.env.EMAIL_PORT || 2525,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+    const resend = new Resend('re_ZffJc6jB_bi9qLaMVVSUYuDaVy48XDf7n');
 
     const isLead = !orcamento.shopify_customer_id && orcamento.lead_json;
     const clientInfo = isLead 
       ? `Lead: ${orcamento.lead_json.nome} (${orcamento.lead_json.whatsapp})` 
       : `Cliente Shopify ID: ${orcamento.shopify_customer_id}`;
 
-    let baseUrl = process.env.APP_URL || 'https://sua-api.com';
+    let baseUrl = process.env.APP_URL || 'https://casulo-backend.herokuapp.com'; // Fallback para URL de produção
     if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
     const pdfLink = `${baseUrl}/api/orcamento/${orcamento.id}/pdf`;
 
-    const mailOptions = {
-      from: '"Casulo B2B" <no-reply@casulo.com>',
-      to: 'comercial@casulo.com',
-      subject: `Novo Orçamento: ${isLead ? orcamento.lead_json.nome : 'Cliente #' + orcamento.shopify_customer_id}`,
-      html: `
+    const fromEmail = 'onboarding@resend.dev'; // Remetente temporário ou fixo
+    const toEmail = 'vendas@casulocorporativo.com.br';
+
+    const htmlContent = `
         <h2>Nova Solicitação de Orçamento</h2>
         <p><strong>ID da Proposta:</strong> ${orcamento.id.substring(0, 8).toUpperCase()}</p>
         <p><strong>Origem:</strong> ${clientInfo}</p>
@@ -123,7 +115,7 @@ class OrcamentoService {
         <p><strong>Itens:</strong></p>
         ${orcamento.line_items_json.map(item => `
           <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-            <p><strong>Produto:</strong> ${item.product_id}</p>
+            <p><strong>Produto:</strong> ${item.title || item.product_id}</p>
             <p><strong>Especificação:</strong> ${item.technical_specification || 'N/A'}</p>
             ${item.custom_image ? `<p><img src="${item.custom_image}" width="200" style="border: 1px solid #ddd;" /></p>` : ''}
             ${item.configuration_url ? `<p><a href="${item.configuration_url}" target="_blank" style="color: #814620; font-weight: bold;">[Ver Configuração 3D]</a></p>` : ''}
@@ -131,10 +123,20 @@ class OrcamentoService {
         `).join('')}
         <hr />
         <p>Baixar proposta completa em PDF: <a href="${pdfLink}">Link da Proposta</a></p>
-      `
-    };
+    `;
 
-    return await transporter.sendMail(mailOptions);
+    try {
+      const data = await resend.emails.send({
+        from: fromEmail,
+        to: toEmail,
+        subject: `Novo Orçamento: ${isLead ? orcamento.lead_json.nome : 'Cliente #' + orcamento.shopify_customer_id}`,
+        html: htmlContent
+      });
+      console.log('[RESEND]: Orçamento enviado com sucesso via Resend API.', data);
+      return data;
+    } catch (error) {
+      console.error('[RESEND ERROR]: Erro ao enviar notificação comercial:', error);
+    }
   }
 
   parseItems(items) {
