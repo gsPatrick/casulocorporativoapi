@@ -13,12 +13,16 @@ class PdfService {
    */
   async getOrcamentoPDFBuffer(orcamento) {
     console.log(`[PDF SERVICE]: Gerando Buffer para orçamento #${orcamento.id}`);
+    const start = Date.now();
     
     try {
+      console.log('[PDF SERVICE]: Preparando dados do template...');
       const templateData = await this.prepareTemplateData(orcamento);
+      console.log('[PDF SERVICE]: Renderizando EJS...');
       const templatePath = path.join(__dirname, 'templates', 'main.ejs');
       const html = await ejs.renderFile(templatePath, templateData);
 
+      console.log('[PDF SERVICE]: Iniciando Puppeteer...');
       const browser = await puppeteer.launch({
         headless: 'new',
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
