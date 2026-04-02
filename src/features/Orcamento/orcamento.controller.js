@@ -334,7 +334,10 @@ class OrcamentoController {
             { shopify_customer_id: identifier.toString() },
             { browser_id: identifier.toString() }
           ],
-          variant_id: { [Op.in]: variant_ids.map(v => v.toString()) }
+          [Op.or]: [
+            { variant_id: { [Op.in]: variant_ids.map(v => v.toString()) } },
+            { product_id: { [Op.in]: variant_ids.map(v => v.toString()) } }
+          ]
         }
       });
 
