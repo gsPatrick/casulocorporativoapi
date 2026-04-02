@@ -7,11 +7,13 @@ class AdminController {
    */
   async home(req, res) {
     try {
-      const session = await this.validateSession(req, res);
-      if (!session) return;
+      // Para a Home (Entry Point), validamos o HMAC do Shopify em vez da Sessão Completa,
+      // pois o App Bridge ainda será inicializado para autenticar.
+      const isValidRequest = await this.validateHmac(req, res);
+      if (!isValidRequest) return;
 
       res.render('features/Admin/views/home', {
-        shop: session.shop,
+        shop: req.query.shop,
         host: req.query.host,
         apiKey: process.env.SHOPIFY_API_KEY
       });
@@ -26,11 +28,10 @@ class AdminController {
    */
   async dashboard(req, res) {
     try {
-      // 1. Validar Sessão do Shopify (Obrigatório conforme briefing)
-      // Nota: Em um app embedded, o token vem no Header 'Authorization: Bearer <token>'
-      // ou via middleware do shopify.auth.
-      const session = await this.validateSession(req, res);
-      if (!session) return; // validateSession já enviou 401/403
+      // Para renderizar o HTML do Dashboard, também usamos HMAC Fallback.
+      // O App Bridge no frontend cuidará de manter a sessão ativa para os POSTs.
+      const isValidRequest = await this.validateHmac(req, res);
+      if (!isValidRequest) return;
 
       // 2. Buscar todos os orçamentos do banco Postgres
       const orcamentos = await Orcamento.findAll({
@@ -40,7 +41,7 @@ class AdminController {
       // 3. Renderizar EJS com Polaris
       res.render('features/Admin/views/dashboard', {
         orcamentos,
-        shop: session.shop,
+        shop: req.query.shop,
         host: req.query.host,
         apiKey: process.env.SHOPIFY_API_KEY
       });
@@ -76,6 +77,25 @@ class AdminController {
     } catch (error) {
       console.error('[ADMIN CONTROLLER]: Erro ao atualizar status:', error.message);
       res.status(500).json({ error: 'Erro ao processar atualização' });
+    }
+  }
+
+  /**
+   * Validação de HMAC para requisições iniciais (GET HTML)
+   */
+  async validateHmac(req, res) {
+    try {
+      // shopify-api v11+ valida hmac de query params
+      const isValid = await shopify.utils.validateHmac(req.query);
+      if (!isValid) {
+        res.status(401).send('Não autorizado: Assinatura HMAC inválida');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('[ADMIN HMAC]: Falha na validação:', err.message);
+      res.status(403).send('Erro de segurança no link do Shopify');
+      return false;
     }
   }
 
