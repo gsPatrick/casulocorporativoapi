@@ -24,6 +24,10 @@ app.use((req, res, next) => {
 // Middlewares
 const path = require('path');
 
+// Configuração do Engine de Views EJS (v4.2.0)
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'src')); // Local onde os recursos estão agrupados por feature
+
 app.use(cors({
   origin: '*', // Em produção, idealmente restringir ao domínio da loja
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -40,6 +44,7 @@ app.use('/debug-images', express.static(path.join(__dirname, 'src/temp/images'))
 
 // Rotas
 app.use('/api', routes);
+app.use('/', routes); // Garante que a raiz do domínio também responda (Shopify App URL)
 
 // Sincronizar Banco e Iniciar Servidor
 const startServer = async () => {
