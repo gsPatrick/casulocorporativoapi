@@ -10,7 +10,7 @@ class OrcamentoService {
     
     // Novas Regras de Negócio: Descontos e Tags (v4.0.0)
     const { vendedor, parceiro, customerTags: parsedTags } = this.parseBusinessTags(data.customer_tags || []);
-    const { liquidPrice, discountAmount } = this.applyDiscounts(originalPrice, parsedTags, data.discount_code);
+    const { liquidPrice, discountAmount, discountCategory } = this.applyDiscounts(originalPrice, parsedTags, data.discount_code);
     const shortCode = await this.generateShortCode();
 
     // 1. Persistir no Postgres
@@ -65,6 +65,7 @@ class OrcamentoService {
       total_price: liquidPrice,
       original_price: originalPrice,
       discount_amount: discountAmount,
+      discount_category: discountCategory,
       short_code: shortCode,
       vendedor,
       parceiro,
@@ -367,23 +368,29 @@ class OrcamentoService {
 
   applyDiscounts(originalPrice, tags, discountCode) {
     let discountPercentage = 0;
+    let discountCategory = null;
     
     // Tags de Segmento (Exclusivas - o cliente só tem uma dessas)
-    if (tags.includes('cliente novo')) discountPercentage = 10;
-    else if (tags.includes('cliente ocasional')) discountPercentage = 15;
-    else if (tags.includes('cliente recorrente')) discountPercentage = 20;
+    if (tags.includes('cliente novo')) {
+      discountPercentage = 10;
+      discountCategory = 'Cliente Novo';
+    } else if (tags.includes('cliente ocasional')) {
+      discountPercentage = 15;
+      discountCategory = 'Cliente Ocasional';
+    } else if (tags.includes('cliente recorrente')) {
+      discountPercentage = 20;
+      discountCategory = 'Cliente Recorrente';
+    }
 
     const tagDiscount = originalPrice * (discountPercentage / 100);
     
     // Cupom de Desconto (Valor fixo ou vindo do payload)
-    // Se o cupom vier via payload como um número, abatemos. Se for código, precisaríamos de uma tabela.
-    // O briefing diz: "abater cupons que vierem no payload". Vamos assumir 'discount_coupon_value'.
-    const couponDiscount = 0; // Implementação futura de códigos de cupom vindo do DB
+    const couponDiscount = 0; 
 
     const totalDiscount = tagDiscount + couponDiscount;
     const liquidPrice = originalPrice - totalDiscount;
 
-    return { liquidPrice, discountAmount: totalDiscount };
+    return { liquidPrice, discountAmount: totalDiscount, discountCategory };
   }
 
   async generateShortCode() {

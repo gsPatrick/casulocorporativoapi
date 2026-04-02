@@ -57,7 +57,7 @@
 <div style="margin-top: 20px; text-align: right; font-size: 11px; color: #666;">
     Subtotal: <%= original_formatted %><br>
     <% if (discount_formatted) { %>
-        <span style="color: #007f00;">Descontos Aplicados: - <%= discount_formatted %></span><br>
+        <span style="color: #007f00;">Descontos (<%= discount_category || 'Especial' %>): - <%= discount_formatted %></span><br>
     <% } %>
     <div style="margin-top: 10px; font-size: 16px; color: #000;">
         <strong>Total da Proposta: <%= total_formatted %></strong>

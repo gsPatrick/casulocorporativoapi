@@ -153,6 +153,7 @@ class PdfService {
       items,
       original_formatted: originalBudget > 0 ? `R$ ${originalBudget.toFixed(2).replace('.', ',')}` : 'A Definir',
       discount_formatted: totalDiscount > 0 ? `R$ ${totalDiscount.toFixed(2).replace('.', ',')}` : null,
+      discount_category: orcamento.discount_category || (totalDiscount > 0 ? 'Desconto Especial' : null),
       total_formatted: totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir (B2B)'
     };
   }

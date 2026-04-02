@@ -73,6 +73,10 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.JSONB,
     allowNull: true,
   },
+  discount_category: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   timestamps: true,
   tableName: 'orcamentos',

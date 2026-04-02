@@ -189,10 +189,15 @@
                         <td>
                             <div style="font-weight: 700; text-transform: uppercase;"><%= orc.customer_name %></div>
                             <div style="font-size: 11px; color: #888;"><%= orc.customer_email || 'n/a' %></div>
-                            <div style="margin-top: 4px;">
+                            <div style="margin-top: 4px; display: flex; gap: 4px;">
                                 <span class="status-badge" style="font-size: 9px; padding: 2px 6px;">
                                     <%= orc.customer_type || 'convidado' %>
                                 </span>
+                                <% if (orc.discount_category) { %>
+                                    <span class="status-badge" style="font-size: 9px; padding: 2px 6px; background: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb;">
+                                        <%= orc.discount_category %>
+                                    </span>
+                                <% } %>
                             </div>
                             <div style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;">
                                 <% (orc.customer_tags || []).forEach(tag => { %>
@@ -271,7 +276,7 @@
                                         </div>
                                         <% if (parseFloat(orc.discount_amount) > 0) { %>
                                             <div style="font-size: 11px; color: #d32f2f; margin-bottom: 5px;">
-                                                DESCONTO APLICADO: - R$ <%= parseFloat(orc.discount_amount).toFixed(2).replace('.', ',') %>
+                                                DESCONTO APLICADO (<%= orc.discount_category || 'Especial' %>): - R$ <%= parseFloat(orc.discount_amount).toFixed(2).replace('.', ',') %>
                                             </div>
                                         <% } %>
                                         VALOR FINAL LÍQUIDO: <span style="font-size: 18px; margin-left: 10px;" id="recalc-total-<%= orc.id %>">
