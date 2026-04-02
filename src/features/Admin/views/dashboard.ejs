@@ -225,7 +225,7 @@
                         data-status="<%= orc.status %>"
                         data-customer="<%= orc.customer_type || 'convidado' %>"
                         data-category="<%= orc.discount_category || 'none' %>"
-                        data-search="<%= orc.customer_name.toLowerCase() %> <%= orc.customer_email?.toLowerCase() %> <%= orc.id.substring(0,8).toLowerCase() %> <%= orc.vendedor?.toLowerCase() %> <%= (orc.customer_tags || []).join(' ').toLowerCase() %>"
+                        data-search="<%= (orc.customer_name || '').toLowerCase() %> <%= (orc.customer_email || '').toLowerCase() %> <%= (orc.id || '').substring(0,8).toLowerCase() %> <%= (orc.vendedor || '').toLowerCase() %> <%= (orc.customer_tags || []).join(' ').toLowerCase() %>"
                     >
                         <td style="font-weight: 500;"><%= new Date(orc.createdAt).toLocaleDateString('pt-BR') %></td>
                         <td style="font-family: monospace; font-size: 11px;"><%= orc.id.substring(0,8).toUpperCase() %></td>
