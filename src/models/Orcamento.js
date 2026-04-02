@@ -53,6 +53,22 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  customer_name: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  customer_email: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  customer_phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  customer_type: {
+    type: DataTypes.STRING,
+    defaultValue: 'convidado', // logado, convidado
+  },
 }, {
   timestamps: true,
   tableName: 'orcamentos',

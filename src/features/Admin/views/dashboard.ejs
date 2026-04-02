@@ -63,13 +63,11 @@
                         <td><%= new Date(orc.createdAt).toLocaleDateString('pt-BR') %></td>
                         <td style="font-family: monospace; font-size: 12px;"><%= orc.id.substring(0,8).toUpperCase() %></td>
                         <td>
-                            <% if (orc.shopify_customer_id) { %>
-                                <span title="Shopify ID: <%= orc.shopify_customer_id %>">Cliente Shopify</span>
-                            <% } else if (orc.lead_json) { %>
-                                <%= orc.lead_json.nome %> (<%= orc.lead_json.whatsapp %>)
-                            <% } else { %>
-                                Visitante
-                            <% } %>
+                            <div style="font-weight: bold;"><%= orc.customer_name %></div>
+                            <div style="font-size: 11px; color: #6d7175;"><%= orc.customer_email || 'E-mail não informado' %></div>
+                            <span class="status-badge" style="background: #f1f1f1; color: #333; font-size: 10px; padding: 2px 4px; border-radius: 4px; margin-top: 5px; display: inline-block;">
+                                <%= (orc.customer_type || 'convidado').toUpperCase() %>
+                            </span>
                         </td>
                         <td><%= orc.vendedor || '-' %></td>
                         <td><%= orc.parceiro || '-' %></td>

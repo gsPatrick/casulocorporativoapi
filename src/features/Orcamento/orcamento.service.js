@@ -52,6 +52,10 @@ class OrcamentoService {
     const orcamento = await Orcamento.create({
       id: orcamentoId,
       shopify_customer_id: data.customer_id ? data.customer_id.toString() : null,
+      customer_type: data.customer_id ? 'logado' : 'convidado',
+      customer_name: data.customer_name || data.lead?.nome || (data.customer_id ? 'Cliente Shopify' : 'Visitante'),
+      customer_email: data.customer_email || data.lead?.email || null,
+      customer_phone: data.customer_phone || data.lead?.whatsapp || null,
       lead_json: data.lead || null,
       line_items_json: finalItems,
       total_price: liquidPrice,
@@ -149,12 +153,12 @@ class OrcamentoService {
       const data = await resend.emails.send({
         from: fromEmail,
         to: toEmail,
-        subject: `Novo Orçamento: ${isLead ? orcamento.lead_json.nome : 'Cliente #' + orcamento.shopify_customer_id}`,
+        subject: `Novo Orçamento: ${orcamento.customer_name} (${orcamento.customer_email || 'B2B'})`,
         html: htmlContent,
         attachments: pdfBuffer ? [
           {
             filename: `Proposta-Casulo-${orcamento.id.substring(0, 8).toUpperCase()}.pdf`,
-            content: pdfBuffer,
+            content: pdfBuffer.toString('base64'),
           }
         ] : []
       });
@@ -208,15 +212,14 @@ class OrcamentoService {
   }
 
   async syncWithShopifyMetaobject(orcamento) {
-    const isLead = !orcamento.shopify_customer_id && orcamento.lead_json;
-    const clientName = isLead ? orcamento.lead_json.nome : `Customer_${orcamento.shopify_customer_id}`;
-
     const variables = {
       metaobject: {
         type: 'orcamento',
         fields: [
           { key: 'customer_id', value: orcamento.shopify_customer_id || 'guest' },
-          { key: 'customer_name', value: clientName },
+          { key: 'customer_name', value: orcamento.customer_name },
+          { key: 'customer_email', value: orcamento.customer_email || '' },
+          { key: 'customer_type', value: orcamento.customer_type || 'convidado' },
           { key: 'total_price', value: orcamento.total_price.toString() },
           { key: 'configuration_summary', value: JSON.stringify(orcamento.line_items_json) }
         ]
