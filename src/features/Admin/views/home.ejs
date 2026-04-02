@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Casulo B2B | Bem-vindo</title>
+    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@12.0.0/build/esm/styles.css">
+    <script src="https://unpkg.com/@shopify/app-bridge@3.7.10/umd/index.js"></script>
+    <script>
+        const AppBridge = window['app-bridge'];
+        const createApp = AppBridge.default;
+        const app = createApp({
+            apiKey: '<%= apiKey %>',
+            host: '<%= host %>',
+            forceRedirect: true
+        });
+    </script>
+    <style>
+        body { background-color: #f6f6f7; padding: 40px; display: flex; justify-content: center; align-items: center; min-height: 80vh; }
+        .hero { max-width: 600px; text-align: center; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .btn-main { background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 20px; transition: background 0.2s; }
+        .btn-main:hover { background: #005e46; }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1 style="font-size: 32px; font-weight: bold; margin-bottom: 10px;">📦 Casulo B2B Orcamentos</h1>
+        <p style="color: #6d7175; font-size: 16px; margin-bottom: 30px;">
+            Sua central de orçamentos e configurações 3D. Gerencie propostas, acompanhe leads e aprove orçamentos com facilidade.
+        </p>
+        
+        <div style="display: flex; gap: 15px; justify-content: center;">
+            <a href="/admin/dashboard?host=<%= host %>&shop=<%= shop %>" class="btn-main">
+                📋 Painel de Orçamentos
+            </a>
+            <a href="https://support.casulocorporativo.com.br" target="_blank" style="background: #f1f1f1; color: #333;" class="btn-main">
+                ⚙️ Configurações
+            </a>
+        </div>
+        
+        <div style="margin-top: 40px; border-top: 1px solid #f1f1f1; padding-top: 20px; font-size: 12px; color: #999;">
+            Conectado em: <%= shop %>
+        </div>
+    </div>
+</body>
+</html>

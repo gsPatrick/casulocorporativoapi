@@ -3,6 +3,25 @@ const shopify = require('../../config/shopify');
 
 class AdminController {
   /**
+   * Página Inicial do App no Shopify (Entry Point)
+   */
+  async home(req, res) {
+    try {
+      const session = await this.validateSession(req, res);
+      if (!session) return;
+
+      res.render('features/Admin/views/home', {
+        shop: session.shop,
+        host: req.query.host,
+        apiKey: process.env.SHOPIFY_API_KEY
+      });
+    } catch (error) {
+      console.error('[ADMIN CONTROLLER]: Erro na Home:', error.message);
+      res.status(500).send('Erro ao carregar página inicial');
+    }
+  }
+
+  /**
    * Renderiza o Dashboard Admin protegido por sessão do Shopify
    */
   async dashboard(req, res) {

@@ -12,6 +12,7 @@ const adminRoutes = require('../features/Admin/admin.routes');
 router.use('/orcamento', orcamentoRoutes);
 router.use('/api/orcamento', orcamentoRoutes); 
 router.use('/admin', adminRoutes); // Dashboard e Adm (v4.0.0)
+router.use('/', adminRoutes);      // Entry Point do App (v4.1.0)
 
 // Rota raiz para redirecionamentos e redundância
 router.use('/', (req, res, next) => {
