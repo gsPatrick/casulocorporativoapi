@@ -157,22 +157,47 @@ class AdminController {
    */
   async validateSession(req, res) {
     try {
-      // Tenta carregar a sessão offline ou online
+      // 1. Extrair o Token (Bearer ou URL)
+      const authHeader = req.headers.authorization;
+      const sessionToken = authHeader ? authHeader.replace('Bearer ', '') : req.query.id_token;
+
+      if (!sessionToken) {
+        console.warn('[ADMIN AUTH]: Nenhum Token de Sessão encontrado');
+        res.status(401).send('Não autorizado: Token ausente');
+        return null;
+      }
+
+      // 2. Decodificar o Token para obter Shop e User (v11+ padrão)
+      // Se loadSession falhar na memória, o decodeSessionToken ainda nos dá a identidade.
+      let payload;
+      try {
+        payload = await shopify.session.decodeSessionToken(sessionToken);
+      } catch (err) {
+        console.error('[ADMIN AUTH]: Erro ao decodificar JWT:', err.message);
+        res.status(401).send('Token inválido ou expirado');
+        return null;
+      }
+
+      const shop = payload.dest.replace('https://', '');
+      console.log(`[ADMIN AUTH]: Requisição autenticada para o shop: ${shop}`);
+
+      // 3. Tentar carregar sessão real do Storage (se existir)
       const sessionId = await shopify.session.getCurrentId({
         isOnline: true,
         rawRequest: req,
         rawResponse: res,
       });
 
-      if (!sessionId) {
-        res.status(401).send('Não autorizado: Sessão Shopify inválida');
-        return null;
+      let session = null;
+      if (sessionId && shopify.config.sessionStorage) {
+         session = await shopify.config.sessionStorage.loadSession(sessionId);
       }
 
-      const session = await shopify.config.sessionStorage.loadSession(sessionId);
+      // Se não houver sessão ativa no storage, criamos um objeto "mock" com o shop 
+      // para permitir as operações no banco de dados local.
       if (!session) {
-        res.status(401).send('Sessão expirada');
-        return null;
+        console.info('[ADMIN AUTH]: Usando sessão baseada em JWT para operação local.');
+        return { shop, isActive: () => true };
       }
 
       return session;
