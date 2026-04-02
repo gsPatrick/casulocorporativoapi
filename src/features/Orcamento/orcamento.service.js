@@ -9,8 +9,8 @@ class OrcamentoService {
     const originalPrice = this.calculateTotalPrice(parsedItems);
     
     // Novas Regras de Negócio: Descontos e Tags (v4.0.0)
-    const { vendedor, parceiro, customerTags } = this.parseBusinessTags(data.customer_tags || []);
-    const { liquidPrice, discountAmount } = this.applyDiscounts(originalPrice, customerTags, data.discount_code);
+    const { vendedor, parceiro, customerTags: parsedTags } = this.parseBusinessTags(data.customer_tags || []);
+    const { liquidPrice, discountAmount } = this.applyDiscounts(originalPrice, parsedTags, data.discount_code);
     const shortCode = await this.generateShortCode();
 
     // 1. Persistir no Postgres
@@ -187,6 +187,7 @@ class OrcamentoService {
         variant_id: item.variant_id || null,
         title: item.title || 'Produto',
         technical_specification: item.technical_specification || '',
+        price: item.price || 0,
         additional_info: item.additional_info || '',
         custom_image: item.custom_image || null,
         configuration_url: item.configuration_url || null,
@@ -201,8 +202,8 @@ class OrcamentoService {
   calculateTotalPrice(items) {
     let total = 0;
     items.forEach(item => {
-      const basePrice = 0.00; // Preços são tratados no orçamento personalizado
-      total += basePrice * (item.quantity || 1);
+      const itemPrice = parseFloat(item.price || 0);
+      total += itemPrice * (item.quantity || 1);
     });
     return total;
   }
