@@ -193,6 +193,11 @@
                                     <%= orc.customer_type || 'convidado' %>
                                 </span>
                             </div>
+                            <div style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;">
+                                <% (orc.customer_tags || []).forEach(tag => { %>
+                                    <span style="font-size: 9px; color: #666; background: #f9f9f9; border: 1px solid #eee; padding: 1px 4px; border-radius: 2px;"><%= tag %></span>
+                                <% }); %>
+                            </div>
                         </td>
                         <td><%= orc.vendedor || '-' %></td>
                         <td>
@@ -228,26 +233,47 @@
                                     <% orc.line_items_json.forEach((item, idx) => { %>
                                         <div class="product-edit-card">
                                             <img src="<%= item.custom_image || 'https://via.placeholder.com/100' %>" class="product-img" onerror="this.src='https://via.placeholder.com/100'">
-                                            <div class="product-form">
-                                                <div>
-                                                    <label class="label-premium">Nome do Produto</label>
-                                                    <input type="text" name="items[<%= idx %>][title]" value="<%= item.title %>" class="input-premium">
+                                            <div class="product-form" style="display: block;">
+                                                <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                                                    <div>
+                                                        <label class="label-premium">Nome do Produto</label>
+                                                        <input type="text" name="items[<%= idx %>][title]" value="<%= item.title %>" class="input-premium">
+                                                    </div>
+                                                    <div>
+                                                        <label class="label-premium">Preço Unitário (R$)</label>
+                                                        <input type="text" name="items[<%= idx %>][price]" value="<%= parseFloat(item.price || 0).toFixed(2).replace('.', ',') %>" 
+                                                               class="input-premium item-price-input" data-orc-id="<%= orc.id %>" oninput="recalcTotal('<%= orc.id %>')">
+                                                    </div>
+                                                    <div>
+                                                        <label class="label-premium">Qtd</label>
+                                                        <input type="number" value="<%= item.quantity || 1 %>" disabled class="input-premium item-qty-input" style="background: #f9f9f9; color: #999;">
+                                                    </div>
                                                 </div>
                                                 <div>
-                                                    <label class="label-premium">Preço Unitário (R$)</label>
-                                                    <input type="text" name="items[<%= idx %>][price]" value="<%= parseFloat(item.price || 0).toFixed(2).replace('.', ',') %>" 
-                                                           class="input-premium item-price-input" data-orc-id="<%= orc.id %>" oninput="recalcTotal('<%= orc.id %>')">
+                                                    <label class="label-premium">Descrição Técnica / Especificação</label>
+                                                    <textarea name="items[<%= idx %>][technical_specification]" class="input-premium" rows="3" style="resize: vertical; font-size: 12px;"><%= item.technical_specification %></textarea>
                                                 </div>
-                                                <div>
-                                                    <label class="label-premium">Qtd</label>
-                                                    <input type="number" value="<%= item.quantity || 1 %>" disabled class="input-premium item-qty-input" style="background: #f9f9f9; color: #999;">
-                                                </div>
+                                                <% if (item.configuration_url) { %>
+                                                    <div style="margin-top: 10px;">
+                                                        <a href="<%= item.configuration_url %>" target="_blank" style="font-size: 10px; color: #000; text-decoration: underline; display: inline-flex; align-items: center; gap: 4px;">
+                                                            <i data-lucide="external-link" style="width: 12px; height: 12px;"></i> REABRIR NO CUSTOMIZADOR
+                                                        </a>
+                                                    </div>
+                                                <% } %>
                                             </div>
                                         </div>
                                     <% }); %>
 
                                     <div class="summary-box">
-                                        NOVO VALOR TOTAL: <span style="font-size: 18px; margin-left: 10px;" id="recalc-total-<%= orc.id %>">
+                                        <div style="font-size: 11px; color: #666; margin-bottom: 5px;">
+                                            SUBTOTAL ORIGINAL: R$ <%= parseFloat(orc.original_price || orc.total_price).toFixed(2).replace('.', ',') %>
+                                        </div>
+                                        <% if (parseFloat(orc.discount_amount) > 0) { %>
+                                            <div style="font-size: 11px; color: #d32f2f; margin-bottom: 5px;">
+                                                DESCONTO APLICADO: - R$ <%= parseFloat(orc.discount_amount).toFixed(2).replace('.', ',') %>
+                                            </div>
+                                        <% } %>
+                                        VALOR FINAL LÍQUIDO: <span style="font-size: 18px; margin-left: 10px;" id="recalc-total-<%= orc.id %>">
                                             R$ <%= parseFloat(orc.total_price).toFixed(2).replace('.', ',') %>
                                         </span>
                                     </div>
@@ -310,11 +336,13 @@
             // Reconstruir o array de itens do form
             const priceInputs = form.querySelectorAll('.item-price-input');
             const titleInputs = form.querySelectorAll('input[name*="[title]"]');
+            const specInputs = form.querySelectorAll('textarea[name*="[technical_specification]"]');
             
             priceInputs.forEach((input, idx) => {
                 items.push({
                     title: titleInputs[idx].value,
-                    price: input.value
+                    price: input.value,
+                    technical_specification: specInputs[idx].value
                 });
             });
 

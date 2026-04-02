@@ -68,6 +68,7 @@ class OrcamentoService {
       short_code: shortCode,
       vendedor,
       parceiro,
+      customer_tags: data.customer_tags || [],
       status: 'pendente'
     });
     console.log(`[${new Date().toISOString()}] [SERVICE]: Escrita no Postgres concluída em ${Date.now() - dbStart}ms (Total: ${Date.now() - startService}ms)`);
@@ -102,11 +103,13 @@ class OrcamentoService {
       console.error('Falha na sincronização com Metaobjects:', error.message);
     }
 
-    // B. Notificação Comercial (E-mail)
-    try {
-      await this.sendCommercialNotification(orcamento);
-    } catch (error) {
-      console.error('Falha ao enviar e-mail de notificação:', error.message);
+    // B. Notificação Comercial (E-mail) - Apenas para Convidados/Leads (v4.2.1)
+    if (orcamento.customer_type === 'convidado') {
+      try {
+        await this.sendCommercialNotification(orcamento);
+      } catch (error) {
+        console.error('Falha ao enviar e-mail de notificação:', error.message);
+      }
     }
   }
 

@@ -126,7 +126,8 @@ class AdminController {
           return {
             ...dbItem,
             title: edited.title || dbItem.title,
-            price: price.toFixed(2)
+            price: price.toFixed(2),
+            technical_specification: edited.technical_specification || dbItem.technical_specification
           };
         }
         return dbItem;
@@ -138,8 +139,8 @@ class AdminController {
         total_price: newTotal
       });
 
-      // 3. Reenviar e-mail se for convidado (Lead) para notificar do novo PDF
-      if (orcamento.customer_type === 'convidado' || (orcamento.lead_json && orcamento.customer_email)) {
+      // 3. Reenviar e-mail se for convidado (Lead) para notificar do novo PDF (v4.2.1)
+      if (orcamento.customer_type === 'convidado') {
         console.log(`[ADMIN]: Reenviando orçamento atualizado para: ${orcamento.customer_email}`);
         await orcService.sendCommercialNotification(orcamento);
       }

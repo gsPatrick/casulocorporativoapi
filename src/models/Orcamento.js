@@ -69,6 +69,10 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.STRING,
     defaultValue: 'convidado', // logado, convidado
   },
+  customer_tags: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+  },
 }, {
   timestamps: true,
   tableName: 'orcamentos',
