@@ -1,7 +1,7 @@
 const Orcamento = require('../../models/Orcamento');
 const shopify = require('../../config/shopify');
 const OrcamentoService = require('../Orcamento/orcamento.service');
-const orcService = new OrcamentoService();
+const orcService = OrcamentoService;
 
 class AdminController {
   /**
