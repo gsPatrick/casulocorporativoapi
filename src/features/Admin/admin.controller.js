@@ -1,5 +1,7 @@
 const Orcamento = require('../../models/Orcamento');
 const shopify = require('../../config/shopify');
+const OrcamentoService = require('../Orcamento/orcamento.service');
+const orcService = new OrcamentoService();
 
 class AdminController {
   /**
@@ -96,6 +98,56 @@ class AdminController {
       console.error('[ADMIN HMAC]: Falha na validação:', err.message);
       res.status(403).send('Erro de segurança no link do Shopify');
       return false;
+    }
+  }
+
+  /**
+   * Atualiza os itens e o valor total do orçamento (v4.2.0)
+   */
+  async updateOrcamento(req, res) {
+    try {
+      const { id } = req.params;
+      const { items } = req.body; // Array de { title, price }
+      
+      const session = await this.validateSession(req, res);
+      if (!session) return;
+
+      const orcamento = await Orcamento.findByPk(id);
+      if (!orcamento) return res.status(404).json({ error: 'Orçamento não encontrado' });
+
+      // 1. Recalcular Total baseado nos novos preços editados
+      let newTotal = 0;
+      const updatedItems = orcamento.line_items_json.map((dbItem, index) => {
+        const edited = items[index];
+        if (edited) {
+          const price = parseFloat(edited.price.replace(',', '.')) || 0;
+          const qty = parseInt(dbItem.quantity) || 1;
+          newTotal += price * qty;
+          return {
+            ...dbItem,
+            title: edited.title || dbItem.title,
+            price: price.toFixed(2)
+          };
+        }
+        return dbItem;
+      });
+
+      // 2. Persistir no Banco de Dados
+      await orcamento.update({
+        line_items_json: updatedItems,
+        total_price: newTotal
+      });
+
+      // 3. Reenviar e-mail se for convidado (Lead) para notificar do novo PDF
+      if (orcamento.customer_type === 'convidado' || (orcamento.lead_json && orcamento.customer_email)) {
+        console.log(`[ADMIN]: Reenviando orçamento atualizado para: ${orcamento.customer_email}`);
+        await orcService.sendCommercialNotification(orcamento);
+      }
+
+      res.json({ success: true, total: newTotal });
+    } catch (error) {
+      console.error('[ADMIN CONTROLLER]: Erro ao atualizar orçamento:', error.message);
+      res.status(500).json({ error: 'Erro ao salvar alterações' });
     }
   }
 

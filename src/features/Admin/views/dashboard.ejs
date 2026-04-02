@@ -2,10 +2,13 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Casulo | Painel de Orçamentos</title>
-    <!-- POLARIS CDN -->
+    <title>Casulo B2B | Gestão de Orçamentos</title>
     <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@12.0.0/build/esm/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@shopify/app-bridge@3.7.10/umd/index.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         const AppBridge = window['app-bridge'];
         const createApp = AppBridge.default;
@@ -16,73 +19,246 @@
         });
     </script>
     <style>
-        body { background-color: #f6f6f7; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        .polaris-card { background: white; border-radius: 8px; box-shadow: 0 0 0 1px rgba(63, 63, 68, 0.05), 0 1px 3px 0 rgba(63, 63, 68, 0.15); padding: 20px; margin-bottom: 20px; }
-        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
-        .status-pendente { background: #fff4e5; color: #b98900; }
-        .status-aprovado { background: #e3fbe3; color: #007f00; }
-        .status-cancelado { background: #fbeae5; color: #bf0711; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f1f1; color: #6d7175; font-size: 13px; }
-        td { padding: 12px; border-bottom: 1px solid #f1f1f1; font-size: 14px; color: #202223; }
-        .btn-view { color: #008060; font-weight: bold; cursor: pointer; text-decoration: none; }
-        .btn-approve { background: #008060; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .btn-approve:disabled { background: #c1c1c1; }
+        :root {
+            --p-color-bg: #ffffff;
+            --p-color-text: #000000;
+            --p-color-border: #eeeeee;
+            --p-color-accent: #000000;
+        }
+
+        body { 
+            background-color: #fff; 
+            color: #000;
+            padding: 30px; 
+            font-family: 'Inter', -apple-system, sans-serif; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #000;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: -0.5px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .polaris-card { 
+            background: white; 
+            border: 1px solid #eee;
+            border-radius: 0;
+            padding: 0; 
+            margin-bottom: 20px; 
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+        th { 
+            text-align: left; 
+            padding: 16px 20px; 
+            border-bottom: 1px solid #000; 
+            color: #000; 
+            font-size: 11px; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+        td { 
+            padding: 16px 20px; 
+            border-bottom: 1px solid #eee; 
+            font-size: 13px; 
+            color: #333; 
+            vertical-align: middle;
+        }
+
+        .row-main:hover { background-color: #fafafa; cursor: pointer; }
+        
+        .status-badge { 
+            padding: 4px 10px; 
+            border-radius: 2px; 
+            font-size: 10px; 
+            font-weight: 700; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid #000;
+        }
+        .status-pendente { background: #fff; color: #000; border-color: #ccc; }
+        .status-aprovado { background: #000; color: #fff; border-color: #000; }
+        .status-cancelado { background: #eee; color: #999; border-color: #eee; }
+
+        .btn-black { 
+            background: #000; 
+            color: #fff; 
+            border: 1px solid #000;
+            padding: 8px 16px; 
+            border-radius: 2px; 
+            cursor: pointer; 
+            font-size: 11px; 
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .btn-black:hover { background: #333; transform: translateY(-1px); }
+        .btn-outline { background: transparent; color: #000; }
+        .btn-outline:hover { background: #f5f5f5; }
+
+        /* Expandable Row */
+        .edit-row { display: none; background-color: #fcfcfc; }
+        .edit-inner { padding: 30px; border-bottom: 1px solid #eee; }
+        
+        .product-edit-card {
+            display: flex;
+            gap: 20px;
+            background: #fff;
+            border: 1px solid #eee;
+            padding: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .product-img { width: 80px; height: 80px; object-fit: cover; border: 1px solid #eee; background: #f9f9f9; }
+        .product-form { flex: 1; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; }
+        
+        .input-premium {
+            border: 1px solid #ddd;
+            padding: 10px;
+            font-size: 13px;
+            width: 100%;
+            border-radius: 0;
+            font-family: inherit;
+        }
+        .input-premium:focus { border-color: #000; outline: none; }
+        
+        .label-premium { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #999; margin-bottom: 5px; display: block; }
+
+        .summary-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f1f1f1;
+            text-align: right;
+            font-weight: 700;
+        }
+        
+        .lucide { width: 16px; height: 16px; }
     </style>
 </head>
 <body>
-    <div class="polaris-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h1 style="font-size: 20px; font-weight: bold;">📊 Painel de Orçamentos - Casulo B2B</h1>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" placeholder="Filtrar por Cliente..." style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <select style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="">Status: Todos</option>
-                    <option value="pendente">Pendente</option>
-                    <option value="aprovado">Aprovado</option>
-                </select>
+    <div class="header">
+        <h1><i data-lucide="package"></i> Painel de Orçamentos</h1>
+        <div style="display: flex; gap: 10px;">
+            <div style="position: relative;">
+                <i data-lucide="search" style="position: absolute; left: 10px; top: 10px; color: #999;"></i>
+                <input type="text" placeholder="BUSCAR CLIENTE..." style="padding: 10px 10px 10px 35px; border: 1px solid #000; font-size: 12px; width: 250px;">
             </div>
+            <button class="btn-black btn-outline"><i data-lucide="filter"></i> Filtros</button>
         </div>
+    </div>
 
+    <div class="polaris-card">
         <table>
             <thead>
                 <tr>
                     <th>Data</th>
-                    <th>ID</th>
+                    <th>Ref</th>
                     <th>Cliente / Empresa</th>
                     <th>Vendedor</th>
-                    <th>Parceiro</th>
                     <th>Status</th>
-                    <th>Valor Total</th>
-                    <th>Ações</th>
+                    <th>Total</th>
+                    <th style="text-align: right;">Ações</th>
                 </tr>
             </thead>
             <tbody>
                 <% orcamentos.forEach(orc => { %>
-                    <tr id="row-<%= orc.id %>">
-                        <td><%= new Date(orc.createdAt).toLocaleDateString('pt-BR') %></td>
-                        <td style="font-family: monospace; font-size: 12px;"><%= orc.id.substring(0,8).toUpperCase() %></td>
+                    <tr class="row-main" onclick="toggleEdit('<%= orc.id %>')">
+                        <td style="font-weight: 500;"><%= new Date(orc.createdAt).toLocaleDateString('pt-BR') %></td>
+                        <td style="font-family: monospace; font-size: 11px;"><%= orc.id.substring(0,8).toUpperCase() %></td>
                         <td>
-                            <div style="font-weight: bold;"><%= orc.customer_name %></div>
-                            <div style="font-size: 11px; color: #6d7175;"><%= orc.customer_email || 'E-mail não informado' %></div>
-                            <span class="status-badge" style="background: #f1f1f1; color: #333; font-size: 10px; padding: 2px 4px; border-radius: 4px; margin-top: 5px; display: inline-block;">
-                                <%= (orc.customer_type || 'convidado').toUpperCase() %>
-                            </span>
+                            <div style="font-weight: 700; text-transform: uppercase;"><%= orc.customer_name %></div>
+                            <div style="font-size: 11px; color: #888;"><%= orc.customer_email || 'n/a' %></div>
+                            <div style="margin-top: 4px;">
+                                <span class="status-badge" style="font-size: 9px; padding: 2px 6px;">
+                                    <%= orc.customer_type || 'convidado' %>
+                                </span>
+                            </div>
                         </td>
                         <td><%= orc.vendedor || '-' %></td>
-                        <td><%= orc.parceiro || '-' %></td>
                         <td>
                             <span class="status-badge status-<%= orc.status %>" id="badge-<%= orc.id %>">
                                 <%= orc.status %>
                             </span>
                         </td>
-                        <td style="font-weight: bold;">R$ <%= parseFloat(orc.total_price).toFixed(2).replace('.', ',') %></td>
-                        <td>
-                            <div style="display: flex; gap: 15px; align-items: center;">
-                                <a href="/api/orcamento/<%= orc.id %>/pdf" target="_blank" class="btn-view">Ver PDF</a>
+                        <td style="font-weight: 800;" id="display-total-<%= orc.id %>">
+                            R$ <%= parseFloat(orc.total_price).toFixed(2).replace('.', ',') %>
+                        </td>
+                        <td style="text-align: right;">
+                            <div style="display: inline-flex; gap: 10px;">
+                                <a href="/api/orcamento/<%= orc.id %>/pdf" target="_blank" class="btn-black btn-outline" onclick="event.stopPropagation()">
+                                    <i data-lucide="file-text"></i> PDF
+                                </a>
                                 <% if (orc.status === 'pendente') { %>
-                                    <button onclick="changeStatus('<%= orc.id %>', 'aprovado')" class="btn-approve" id="btn-<%= orc.id %>">Aprovar</button>
+                                    <button onclick="changeStatus('<%= orc.id %>', 'aprovado'); event.stopPropagation();" class="btn-black" id="btn-approve-<%= orc.id %>">
+                                        <i data-lucide="check"></i> Aprovar
+                                    </button>
                                 <% } %>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Row de Edição -->
+                    <tr class="edit-row" id="edit-row-<%= orc.id %>">
+                        <td colspan="7">
+                            <div class="edit-inner">
+                                <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 20px; text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="edit-3"></i> Editar Itens do Orçamento
+                                </h3>
+                                
+                                <form id="form-<%= orc.id %>" onsubmit="saveOrcamento('<%= orc.id %>'); return false;">
+                                    <% orc.line_items_json.forEach((item, idx) => { %>
+                                        <div class="product-edit-card">
+                                            <img src="<%= item.custom_image || 'https://via.placeholder.com/100' %>" class="product-img" onerror="this.src='https://via.placeholder.com/100'">
+                                            <div class="product-form">
+                                                <div>
+                                                    <label class="label-premium">Nome do Produto</label>
+                                                    <input type="text" name="items[<%= idx %>][title]" value="<%= item.title %>" class="input-premium">
+                                                </div>
+                                                <div>
+                                                    <label class="label-premium">Preço Unitário (R$)</label>
+                                                    <input type="text" name="items[<%= idx %>][price]" value="<%= parseFloat(item.price || 0).toFixed(2).replace('.', ',') %>" 
+                                                           class="input-premium item-price-input" data-orc-id="<%= orc.id %>" oninput="recalcTotal('<%= orc.id %>')">
+                                                </div>
+                                                <div>
+                                                    <label class="label-premium">Qtd</label>
+                                                    <input type="number" value="<%= item.quantity || 1 %>" disabled class="input-premium item-qty-input" style="background: #f9f9f9; color: #999;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% }); %>
+
+                                    <div class="summary-box">
+                                        NOVO VALOR TOTAL: <span style="font-size: 18px; margin-left: 10px;" id="recalc-total-<%= orc.id %>">
+                                            R$ <%= parseFloat(orc.total_price).toFixed(2).replace('.', ',') %>
+                                        </span>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px;">
+                                        <button type="button" class="btn-black btn-outline" onclick="toggleEdit('<%= orc.id %>')">Cancelar</button>
+                                        <button type="submit" class="btn-black" id="btn-save-<%= orc.id %>">
+                                            <i data-lucide="save"></i> Salvar e Atualizar PDF
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -92,14 +268,83 @@
     </div>
 
     <script>
-        async function changeStatus(id, newStatus) {
-            const btn = document.getElementById(`btn-${id}`);
-            const badge = document.getElementById(`badge-${id}`);
-            
-            if (!confirm(`Deseja alterar o status para "${newStatus}"?`)) return;
+        lucide.createIcons();
 
+        function toggleEdit(id) {
+            const row = document.getElementById(`edit-row-${id}`);
+            const isVisible = row.style.display === 'table-row';
+            
+            // Fecha todos antes
+            document.querySelectorAll('.edit-row').forEach(r => r.style.display = 'none');
+            
+            if (!isVisible) {
+                row.style.display = 'table-row';
+            }
+        }
+
+        function recalcTotal(orcId) {
+            let total = 0;
+            const form = document.getElementById(`form-${orcId}`);
+            const priceInputs = form.querySelectorAll('.item-price-input');
+            const qtyInputs = form.querySelectorAll('.item-qty-input');
+            
+            priceInputs.forEach((input, idx) => {
+                const val = parseFloat(input.value.replace(',', '.')) || 0;
+                const qty = parseInt(qtyInputs[idx].value) || 1;
+                total += val * qty;
+            });
+            document.getElementById(`recalc-total-${orcId}`).innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+        }
+
+        async function saveOrcamento(id) {
+            const btn = document.getElementById(`btn-save-${id}`);
+            const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerText = 'Processando...';
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> Salvando...';
+            lucide.createIcons();
+
+            const form = document.getElementById(`form-${id}`);
+            const formData = new FormData(form);
+            const items = [];
+            
+            // Reconstruir o array de itens do form
+            const priceInputs = form.querySelectorAll('.item-price-input');
+            const titleInputs = form.querySelectorAll('input[name*="[title]"]');
+            
+            priceInputs.forEach((input, idx) => {
+                items.push({
+                    title: titleInputs[idx].value,
+                    price: input.value
+                });
+            });
+
+            try {
+                const response = await fetch(`/admin/orcamento/${id}/update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    document.getElementById(`display-total-${id}`).innerText = `R$ ${result.total.toFixed(2).replace('.', ',')}`;
+                    alert('Orçamento atualizado com sucesso! O cliente receberá o novo PDF por e-mail.');
+                    toggleEdit(id);
+                } else {
+                    alert('Erro ao salvar orçamentos.');
+                }
+            } catch (err) {
+                alert('Erro na conexão com o servidor.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                lucide.createIcons();
+            }
+        }
+
+        async function changeStatus(id, newStatus) {
+            const badge = document.getElementById(`badge-${id}`);
+            if (!confirm(`Deseja alterar o status para "${newStatus}"?`)) return;
 
             try {
                 const response = await fetch(`/admin/orcamento/${id}/status`, {
@@ -111,16 +356,12 @@
                 if (response.ok) {
                     badge.innerText = newStatus;
                     badge.className = `status-badge status-${newStatus}`;
-                    btn.remove();
-                    alert('Status atualizado e sincronizado com Shopify!');
-                } else {
-                    alert('Erro ao atualizar status.');
-                    btn.disabled = false;
-                    btn.innerText = 'Aprovar';
+                    const btnApprove = document.getElementById(`btn-approve-${id}`);
+                    if (btnApprove) btnApprove.remove();
+                    alert('Status atualizado!');
                 }
             } catch (err) {
-                alert('Erro na conexão com o servidor.');
-                btn.disabled = false;
+                alert('Erro ao atualizar status.');
             }
         }
     </script>

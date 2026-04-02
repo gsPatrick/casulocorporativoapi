@@ -10,5 +10,6 @@ router.get('/dashboard', adminController.dashboard.bind(adminController));
 
 // Ações do Admin
 router.post('/orcamento/:id/status', adminController.updateStatus.bind(adminController));
+router.post('/orcamento/:id/update', adminController.updateOrcamento.bind(adminController));
 
 module.exports = router;
