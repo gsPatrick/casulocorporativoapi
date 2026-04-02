@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@shopify/app-bridge@3.7.10/umd/index.js"></script>
+    <script src="https://unpkg.com/@shopify/app-bridge-utils@3.4.3/umd/index.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>
         const AppBridge = window['app-bridge'];
@@ -296,19 +297,40 @@
     <script>
         lucide.createIcons();
         
-        // Helper para pegar o token de sessão do Shopify App Bridge (v3.x / v4.x)
+        // Helper para pegar o token de sessão do Shopify App Bridge (v3.x / v4.x / Fallback URL)
         async function getAuthenticatedToken() {
             try {
+                // 1. App Bridge 4.0 (Moderno/Scriptless)
                 if (window.shopify && typeof window.shopify.idToken === 'function') {
+                    console.log('[AUTH]: Tentando window.shopify.idToken()');
                     return await window.shopify.idToken();
                 }
+
+                // 2. App Bridge Utils (Oficial v3.x)
+                if (window['app-bridge-utils'] && window['app-bridge-utils'].getSessionToken) {
+                    console.log('[AUTH]: Tentando app-bridge-utils.getSessionToken()');
+                    return await window['app-bridge-utils'].getSessionToken(app);
+                }
+
+                // 3. App Bridge Actions (Legado v2/v3)
                 const getSessionToken = AppBridge.actions.getSessionToken;
                 if (typeof getSessionToken === 'function') {
-                    return await getSessionToken(app);
+                    console.log('[AUTH]: Tentando AppBridge.actions.getSessionToken()');
+                    const token = await getSessionToken(app);
+                    if (token) return token;
                 }
+
+                // 4. Fallback: URL do App Proxy/Embedded (id_token vindo do Shopify)
+                const urlParams = new URLSearchParams(window.location.search);
+                const idToken = urlParams.get('id_token');
+                if (idToken) {
+                    console.log('[AUTH]: Usando id_token vindo da URL (Fallback)');
+                    return idToken;
+                }
+
                 return null;
             } catch (err) {
-                console.error('[AUTH DEBUG]: Erro ao obter token do App Bridge:', err);
+                console.error('[AUTH DEBUG]: Erro catastrófico ao obter token:', err);
                 return null;
             }
         }
