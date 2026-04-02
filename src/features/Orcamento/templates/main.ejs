@@ -61,7 +61,7 @@
         <%- include('components/header') %>
 
         <div class="proposta-header">
-            <h1>Proposta Nº <%= id.substring(0, 8).toUpperCase() %></h1>
+            <h1>Proposta Nº <%= short_code || id.substring(0, 8).toUpperCase() %></h1>
         </div>
 
         <div class="box-info">
@@ -82,7 +82,7 @@
             <!-- PROPOSAL DATA -->
             <div class="info-card" style="max-width: 200px;">
                 <strong>Dados da Proposta:</strong>
-                Número: <%= id.substring(0, 8).toUpperCase() %><br>
+                Número: <%= short_code || id.substring(0, 8).toUpperCase() %><br>
                 Data: <%= date %><br>
                 Validade: 15 dias
             </div>

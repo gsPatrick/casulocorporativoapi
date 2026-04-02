@@ -64,9 +64,9 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('✅ Conexão com Postgres estabelecida com sucesso.');
     
-    // Sync models (Usa { force: true } por solicitação do usuário para testes do zero)
-    await sequelize.sync({ force: true });
-    console.log('✅ Banco de dados RESETADO e sincronizado (MODO: TESTE DO ZERO).');
+    // Sync models (Usa { alter: true } em vez de force para não perder dados)
+    await sequelize.sync({ alter: true });
+    console.log('✅ Banco de dados sincronizado (MODO: ALTER).');
 
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);

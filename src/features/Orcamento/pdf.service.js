@@ -141,6 +141,7 @@ class PdfService {
       customer_name: lead.nome || `Cliente #${orcamento.shopify_customer_id || 'B2B'}`,
       customer_email: lead.email || 'N/A',
       customer_whatsapp: lead.whatsapp || 'N/A',
+      short_code: orcamento.short_code,
       items,
       original_formatted: originalBudget > 0 ? `R$ ${originalBudget.toFixed(2).replace('.', ',')}` : 'A Definir',
       discount_formatted: totalDiscount > 0 ? `R$ ${totalDiscount.toFixed(2).replace('.', ',')}` : null,

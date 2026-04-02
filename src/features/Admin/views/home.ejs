@@ -29,13 +29,21 @@
         </p>
         
         <div style="display: flex; gap: 15px; justify-content: center;">
-            <a href="/admin/dashboard?host=<%= host %>&shop=<%= shop %>" class="btn-main">
+            <button onclick="goToDashboard()" class="btn-main">
                 📋 Painel de Orçamentos
-            </a>
+            </button>
             <a href="https://support.casulocorporativo.com.br" target="_blank" style="background: #f1f1f1; color: #333;" class="btn-main">
                 ⚙️ Configurações
             </a>
         </div>
+
+        <script>
+            function goToDashboard() {
+                // BUGFIX: Repassa TODOS os parâmetros de segurança do Shopify (hmac, timestamp, etc)
+                const currentParams = window.location.search;
+                window.location.href = "/admin/dashboard" + currentParams;
+            }
+        </script>
         
         <div style="margin-top: 40px; border-top: 1px solid #f1f1f1; padding-top: 20px; font-size: 12px; color: #999;">
             Conectado em: <%= shop %>
