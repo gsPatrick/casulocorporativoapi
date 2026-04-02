@@ -10,7 +10,8 @@ class OrcamentoService {
     
     // Novas Regras de Negócio: Descontos e Tags (v4.0.0)
     const { vendedor, parceiro, customerTags: parsedTags } = this.parseBusinessTags(data.customer_tags || []);
-    const { liquidPrice, discountAmount, discountCategory } = this.applyDiscounts(originalPrice, parsedTags, data.discount_code);
+    const orderCount = parseInt(data.customer_order_count || 0);
+    const { liquidPrice, discountAmount, discountCategory } = this.applyDiscounts(originalPrice, parsedTags, data.discount_code, orderCount);
     const shortCode = await this.generateShortCode();
 
     // 1. Persistir no Postgres
@@ -366,11 +367,11 @@ class OrcamentoService {
     return { vendedor, parceiro, customerTags };
   }
 
-  applyDiscounts(originalPrice, tags, discountCode) {
+  applyDiscounts(originalPrice, tags, discountCode, orderCount = 0) {
     let discountPercentage = 0;
     let discountCategory = null;
     
-    // Tags de Segmento (Exclusivas - o cliente só tem uma dessas)
+    // 1. Prioridade para Tags de Segmento explícitas
     if (tags.includes('cliente novo')) {
       discountPercentage = 10;
       discountCategory = 'Cliente Novo';
@@ -380,6 +381,19 @@ class OrcamentoService {
     } else if (tags.includes('cliente recorrente')) {
       discountPercentage = 20;
       discountCategory = 'Cliente Recorrente';
+    } 
+    // 2. Fallback para Regras Automáticas baseadas em Pedidos (v4.6.0)
+    else {
+      if (orderCount === 0) {
+        discountPercentage = 10;
+        discountCategory = 'Cliente Novo';
+      } else if (orderCount >= 1 && orderCount <= 3) {
+        discountPercentage = 15;
+        discountCategory = 'Cliente Ocasional';
+      } else if (orderCount >= 4) {
+        discountPercentage = 20;
+        discountCategory = 'Cliente Recorrente';
+      }
     }
 
     const tagDiscount = originalPrice * (discountPercentage / 100);
