@@ -295,6 +295,7 @@
 
     <script>
         lucide.createIcons();
+        const getSessionToken = AppBridge.actions.getSessionToken;
 
         function toggleEdit(id) {
             const row = document.getElementById(`edit-row-${id}`);
@@ -347,9 +348,14 @@
             });
 
             try {
+                const token = await getSessionToken(app);
+
                 const response = await fetch(`/admin/orcamento/${id}/update`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ items })
                 });
 
@@ -375,9 +381,14 @@
             if (!confirm(`Deseja alterar o status para "${newStatus}"?`)) return;
 
             try {
+                const token = await getSessionToken(app);
+
                 const response = await fetch(`/admin/orcamento/${id}/status`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({ status: newStatus })
                 });
 
