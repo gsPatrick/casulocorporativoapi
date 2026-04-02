@@ -11,7 +11,14 @@ class OrcamentoService {
     // Novas Regras de Negócio: Descontos e Tags (v4.0.0)
     const { vendedor, parceiro, customerTags: parsedTags } = this.parseBusinessTags(data.customer_tags || []);
     const orderCount = parseInt(data.customer_order_count || 0);
-    const { liquidPrice, discountAmount, discountCategory } = this.applyDiscounts(originalPrice, parsedTags, data.discount_code, orderCount);
+    
+    let { liquidPrice, discountAmount, discountCategory } = this.applyDiscounts(originalPrice, parsedTags, data.discount_code, orderCount);
+    
+    // BUGFIX: Se o frontend já enviou os totais calculados (unit-price discount), priorizamos eles (v4.8.0)
+    const finalOriginalPrice = data.original_total_price ? parseFloat(data.original_total_price) : originalPrice;
+    const finalLiquidPrice = data.total_price ? parseFloat(data.total_price) : liquidPrice;
+    const finalDiscountAmount = finalOriginalPrice - finalLiquidPrice;
+    
     const shortCode = await this.generateShortCode();
 
     // 1. Persistir no Postgres
@@ -63,9 +70,9 @@ class OrcamentoService {
       customer_phone: data.customer_phone || data.lead?.whatsapp || null,
       lead_json: data.lead || null,
       line_items_json: finalItems,
-      total_price: liquidPrice,
-      original_price: originalPrice,
-      discount_amount: discountAmount,
+      total_price: finalLiquidPrice,
+      original_price: finalOriginalPrice,
+      discount_amount: finalDiscountAmount,
       discount_category: discountCategory,
       short_code: shortCode,
       vendedor,
