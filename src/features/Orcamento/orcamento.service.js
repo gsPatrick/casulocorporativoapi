@@ -127,26 +127,36 @@ class OrcamentoService {
     if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
     const pdfLink = `${baseUrl}/api/orcamento/${orcamento.id}/pdf`;
 
-    const fromEmail = 'Casulo Corporativo <contato@casulocorporativo.com.br>'; 
+    const fromEmail = 'Casulo Corporativa <contato@casulocorporativo.com.br>'; 
     const toEmail = ['vendas@casulocorporativo.com.br', 'patricksiqueira.developer@gmail.com'];
 
     const htmlContent = `
-        <h2>Nova Solicitação de Orçamento</h2>
-        <p><strong>ID da Proposta:</strong> ${orcamento.id.substring(0, 8).toUpperCase()}</p>
-        <p><strong>Origem:</strong> ${clientInfo}</p>
-        <p><strong>E-mail:</strong> ${isLead ? orcamento.lead_json.email : 'N/A (Logado)'}</p>
-        <hr />
-        <p><strong>Itens:</strong></p>
-        ${orcamento.line_items_json.map(item => `
-          <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
-            <p><strong>Produto:</strong> ${item.title || item.product_id}</p>
-            <p><strong>Especificação:</strong> ${item.technical_specification || 'N/A'}</p>
-            ${item.custom_image ? `<p><img src="${item.custom_image}" width="200" style="border: 1px solid #ddd;" /></p>` : ''}
-            ${item.configuration_url ? `<p><a href="${item.configuration_url}" target="_blank" style="color: #814620; font-weight: bold;">[Ver Configuração 3D]</a></p>` : ''}
-          </div>
-        `).join('')}
-        <hr />
-        <p>Baixar proposta completa em PDF: <a href="${pdfLink}">Link da Proposta</a></p>
+        <div style="font-family: 'Inter', sans-serif; color: #111; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px;">
+            <h2 style="text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #000; padding-bottom: 10px;">Nova Solicitação de Orçamento</h2>
+            <p style="font-size: 14px; margin-top: 20px;"><strong>ID da Proposta:</strong> #${orcamento.id.substring(0, 8).toUpperCase()}</p>
+            <p style="font-size: 14px;"><strong>Origem:</strong> ${clientInfo}</p>
+            <p style="font-size: 14px;"><strong>E-mail do Cliente:</strong> ${orcamento.lead_json?.email || orcamento.customer_email || 'N/A'}</p>
+            
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 4px; margin: 25px 0;">
+                <p style="margin: 0; font-weight: bold; color: #814620;">📎 A proposta completa em PDF está em anexo a este e-mail.</p>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
+            <p style="font-size: 13px; font-weight: bold; text-transform: uppercase;">Resumo dos Itens:</p>
+            ${orcamento.line_items_json.map(item => `
+              <div style="margin-bottom: 15px; border-bottom: 1px solid #f5f5f5; padding-bottom: 15px; display: flex; gap: 15px; align-items: center;">
+                ${item.custom_image ? `<img src="${item.custom_image}" width="80" height="80" style="border: 1px solid #eee; object-fit: cover;" />` : ''}
+                <div>
+                    <p style="margin: 0; font-weight: bold; font-size: 14px;">${item.title || item.product_id}</p>
+                    <p style="margin: 5px 0 0; font-size: 12px; color: #666;">Qtd: ${item.quantity || 1} | ${item.technical_specification || 'Sem especificações'}</p>
+                </div>
+              </div>
+            `).join('')}
+            
+            <div style="margin-top: 40px; text-align: center;">
+                <a href="${pdfLink}" style="background: #000; color: #fff; text-decoration: none; padding: 12px 25px; font-weight: bold; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">Acessar no Painel Admin</a>
+            </div>
+        </div>
     `;
 
     // C. Gerar PDF para anexo
@@ -154,6 +164,7 @@ class OrcamentoService {
     try {
       const pdfService = require('./pdf.service');
       pdfBuffer = await pdfService.getOrcamentoPDFBuffer(orcamento);
+      console.log(`[SERVICE]: Buffer de PDF gerado com sucesso para anexo (${pdfBuffer.length} bytes)`);
     } catch (err) {
       console.error('[SERVICE]: Falha ao gerar buffer do PDF para anexo:', err.message);
     }
@@ -162,16 +173,16 @@ class OrcamentoService {
       const data = await resend.emails.send({
         from: fromEmail,
         to: toEmail,
-        subject: `Novo Orçamento: ${orcamento.customer_name} (${orcamento.customer_email || 'B2B'})`,
+        subject: `[B2B] Novo Orçamento: ${orcamento.customer_name} (#${orcamento.id.substring(0, 8).toUpperCase()})`,
         html: htmlContent,
         attachments: pdfBuffer ? [
           {
             filename: `Proposta-Casulo-${orcamento.id.substring(0, 8).toUpperCase()}.pdf`,
-            content: pdfBuffer.toString('base64'),
+            content: pdfBuffer,
           }
         ] : []
       });
-      console.log('[RESEND]: Orçamento enviado com sucesso via Resend API (com anexo).', data);
+      console.log('[RESEND]: Orçamento enviado com sucesso via Resend API (com anexo real).', data);
       return data;
     } catch (error) {
       console.error('[RESEND ERROR]: Erro ao enviar notificação comercial:', error);
