@@ -1,6 +1,5 @@
 const { shopifyApi, LATEST_API_VERSION } = require('@shopify/shopify-api');
 require('@shopify/shopify-api/adapters/node');
-const { MemorySessionStorage } = require('@shopify/shopify-api/session-storage/memory');
 require('dotenv').config();
 
 const shopify = shopifyApi({
@@ -10,7 +9,6 @@ const shopify = shopifyApi({
   hostName: (process.env.SHOPIFY_HOST_NAME || '').replace(/https:\/\//, ''),
   apiVersion: LATEST_API_VERSION,
   isEmbeddedApp: true,
-  sessionStorage: new MemorySessionStorage(),
 });
 
 module.exports = shopify;
