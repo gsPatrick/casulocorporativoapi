@@ -162,9 +162,46 @@
         <div style="display: flex; gap: 10px;">
             <div style="position: relative;">
                 <i data-lucide="search" style="position: absolute; left: 10px; top: 10px; color: #999;"></i>
-                <input type="text" placeholder="BUSCAR CLIENTE..." style="padding: 10px 10px 10px 35px; border: 1px solid #000; font-size: 12px; width: 250px;">
+                <input type="text" id="search-input" placeholder="BUSCAR NOME, EMAIL, REF..." 
+                       style="padding: 10px 10px 10px 35px; border: 1px solid #000; font-size: 12px; width: 250px;" 
+                       onkeyup="applyFilters()">
             </div>
-            <button class="btn-black btn-outline"><i data-lucide="filter"></i> Filtros</button>
+            <button class="btn-black btn-outline" onclick="toggleFilters()"><i data-lucide="filter"></i> Filtros</button>
+        </div>
+    </div>
+
+    <!-- PAINEL DE FILTROS -->
+    <div id="filter-panel" style="display: none; background: #fafafa; border: 1px solid #eee; padding: 20px; margin-bottom: 20px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+        <div>
+            <label class="label-premium">Status</label>
+            <select id="filter-status" class="input-premium" onchange="applyFilters()">
+                <option value="all">Todos os Status</option>
+                <option value="pendente">Pendente</option>
+                <option value="aprovado">Aprovado</option>
+                <option value="cancelado">Cancelado</option>
+            </select>
+        </div>
+        <div>
+            <label class="label-premium">Tipo de Cliente</label>
+            <select id="filter-customer" class="input-premium" onchange="applyFilters()">
+                <option value="all">Todos os Tipos</option>
+                <option value="logado">Logado (Cadastrado)</option>
+                <option value="convidado">Convidado (Lead)</option>
+            </select>
+        </div>
+        <div>
+            <label class="label-premium">Regra de Desconto</label>
+            <select id="filter-category" class="input-premium" onchange="applyFilters()">
+                <option value="all">Todas as Regras</option>
+                <option value="Cliente Novo">Cliente Novo (10%)</option>
+                <option value="Cliente Ocasional">Cliente Ocasional (15%)</option>
+                <option value="Cliente Recorrente">Cliente Recorrente (20%)</option>
+                <option value="Desconto Manual">Desconto Manual</option>
+                <option value="none">Sem Desconto</option>
+            </select>
+        </div>
+        <div style="display: flex; align-items: flex-end;">
+            <button class="btn-black btn-outline" style="width: 100%; height: 38px;" onclick="resetFilters()">Limpar Filtros</button>
         </div>
     </div>
 
@@ -183,7 +220,13 @@
             </thead>
             <tbody>
                 <% orcamentos.forEach(orc => { %>
-                    <tr class="row-main" onclick="toggleEdit('<%= orc.id %>')">
+                    <tr class="row-main budget-row" 
+                        onclick="toggleEdit('<%= orc.id %>')"
+                        data-status="<%= orc.status %>"
+                        data-customer="<%= orc.customer_type || 'convidado' %>"
+                        data-category="<%= orc.discount_category || 'none' %>"
+                        data-search="<%= orc.customer_name.toLowerCase() %> <%= orc.customer_email?.toLowerCase() %> <%= orc.id.substring(0,8).toLowerCase() %> <%= orc.vendedor?.toLowerCase() %> <%= (orc.customer_tags || []).join(' ').toLowerCase() %>"
+                    >
                         <td style="font-weight: 500;"><%= new Date(orc.createdAt).toLocaleDateString('pt-BR') %></td>
                         <td style="font-family: monospace; font-size: 11px;"><%= orc.id.substring(0,8).toUpperCase() %></td>
                         <td>
@@ -343,6 +386,51 @@
             const isVisible = row.style.display === 'table-row';
             document.querySelectorAll('.edit-row').forEach(r => r.style.display = 'none');
             if (!isVisible) row.style.display = 'table-row';
+        }
+
+        // --- SISTEMA DE FILTROS ---
+        function toggleFilters() {
+            const panel = document.getElementById('filter-panel');
+            panel.style.display = panel.style.display === 'none' ? 'grid' : 'none';
+        }
+
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('filter-status').value = 'all';
+            document.getElementById('filter-customer').value = 'all';
+            document.getElementById('filter-category').value = 'all';
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const searchText = document.getElementById('search-input').value.toLowerCase();
+            const filterStatus = document.getElementById('filter-status').value;
+            const filterCustomer = document.getElementById('filter-customer').value;
+            const filterCategory = document.getElementById('filter-category').value;
+
+            const rows = document.querySelectorAll('.budget-row');
+            
+            rows.forEach(row => {
+                const searchData = row.getAttribute('data-search');
+                const rowStatus = row.getAttribute('data-status');
+                const rowCustomer = row.getAttribute('data-customer');
+                const rowCategory = row.getAttribute('data-category');
+
+                const matchesSearch = searchData.includes(searchText);
+                const matchesStatus = filterStatus === 'all' || rowStatus === filterStatus;
+                const matchesCustomer = filterCustomer === 'all' || rowCustomer === filterCustomer;
+                const matchesCategory = filterCategory === 'all' || rowCategory.includes(filterCategory) || (filterCategory === 'none' && rowCategory === 'none');
+
+                if (matchesSearch && matchesStatus && matchesCustomer && matchesCategory) {
+                    row.style.display = 'table-row';
+                } else {
+                    row.style.display = 'none';
+                    // Se estiver com edição aberta para esta linha, fechar ela também
+                    const id = row.getAttribute('onclick').match(/'([\w-]+)'/)[1];
+                    const editRow = document.getElementById(`edit-row-${id}`);
+                    if (editRow) editRow.style.display = 'none';
+                }
+            });
         }
 
         function recalcTotal(id) {
