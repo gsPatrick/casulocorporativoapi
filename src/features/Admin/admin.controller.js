@@ -119,18 +119,21 @@ class AdminController {
       let newTotal = 0;
       const updatedItems = orcamento.line_items_json.map((dbItem, index) => {
         const edited = items[index];
+        // Garantir que trabalhamos com um objeto puro
+        const itemData = typeof dbItem.get === 'function' ? dbItem.get({ plain: true }) : dbItem;
+
         if (edited) {
           const price = parseFloat(edited.price.replace(',', '.')) || 0;
-          const qty = parseInt(dbItem.quantity) || 1;
+          const qty = parseInt(itemData.quantity) || 1;
           newTotal += price * qty;
           return {
-            ...dbItem,
-            title: edited.title || dbItem.title,
+            ...itemData,
+            title: edited.title || itemData.title,
             price: price.toFixed(2),
-            technical_specification: edited.technical_specification || dbItem.technical_specification
+            technical_specification: edited.technical_specification || itemData.technical_specification
           };
         }
-        return dbItem;
+        return itemData;
       });
 
       // 2. Persistir no Banco de Dados

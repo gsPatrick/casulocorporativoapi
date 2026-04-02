@@ -82,34 +82,42 @@ class PdfService {
 
       // Se houver snapshot (URL ou Base64 direto)
       if (item.custom_image && item.custom_image.startsWith('data:image')) {
-        // Se for Base64 (nosso novo método Pixel-Perfect), extraímos o conteúdo puro
+        // 1. Base64 direto (Pixel-Perfect)
         imageBase64 = item.custom_image.split(',')[1] || item.custom_image;
       } 
-      else if (item.custom_image && item.custom_image.startsWith('/apps/orcamento')) {
-        // Bypass de Rede: Se a imagem está salva no disco local, ler direto daqui
-        try {
-          // Extrair ID e INDEX da URL /apps/orcamento/api/orcamento/images/:id/:index
-          const urlParts = item.custom_image.split('/');
-          const id = urlParts[urlParts.length - 2];
-          const index = urlParts[urlParts.length - 1];
-          const filename = `snapshot-${id}-${index}.png`;
-          const filePath = path.join(__dirname, '../../temp/images', filename);
-          
-          if (fs.existsSync(filePath)) {
-            imageBase64 = fs.readFileSync(filePath).toString('base64');
-          } else {
-             console.warn(`[PDF SERVICE]: Arquivo não encontrado no disco: ${filename}`);
+      else if (item.custom_image) {
+        // 2. BUSCA ROBUSTA NO DISCO (v4.3.0)
+        // Se a URL contiver o padrão de snapshot da nossa API, tentamos ler direto do disco
+        const snapshotMatch = item.custom_image.match(/images\/([\w-]+)\/(\d+)/);
+        
+        if (snapshotMatch) {
+          try {
+            const id = snapshotMatch[1];
+            const index = snapshotMatch[2];
+            const filename = `snapshot-${id}-${index}.png`;
+            const filePath = path.join(__dirname, '../../temp/images', filename);
+            
+            if (fs.existsSync(filePath)) {
+              console.log(`[PDF SERVICE]: Snapshot encontrado no disco: ${filename}`);
+              imageBase64 = fs.readFileSync(filePath).toString('base64');
+            }
+          } catch (err) {
+            console.warn(`[PDF SERVICE]: Erro na leitura física do snapshot:`, err.message);
           }
-        } catch (err) {
-          console.warn(`[PDF SERVICE]: Falha ao carregar imagem do disco:`, err.message);
         }
-      }
-      else if (item.custom_image && item.custom_image.startsWith('http')) {
-        try {
-          const imgRes = await axios.get(item.custom_image, { responseType: 'arraybuffer', timeout: 20000 });
-          imageBase64 = Buffer.from(imgRes.data, 'binary').toString('base64');
-        } catch (err) {
-          console.warn(`[PDF SERVICE]: Falha ao processar imagem remota para ${item.title}`, err.message);
+
+        // 3. FALLBACK: Download de Rede (Se não achou no disco ou é uma URL externa)
+        if (!imageBase64 && item.custom_image.startsWith('http')) {
+          try {
+            console.log(`[PDF SERVICE]: Baixando imagem via rede: ${item.custom_image}`);
+            const imgRes = await axios.get(item.custom_image, { 
+              responseType: 'arraybuffer', 
+              timeout: 15000 
+            });
+            imageBase64 = Buffer.from(imgRes.data, 'binary').toString('base64');
+          } catch (err) {
+            console.warn(`[PDF SERVICE]: Falha no download da imagem para ${item.title}:`, err.message);
+          }
         }
       }
 
