@@ -9,7 +9,12 @@ const CartItem = sequelize.define('CartItem', {
   },
   shopify_customer_id: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
+    index: true
+  },
+  browser_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
     index: true
   },
   variant_id: {
@@ -38,8 +43,10 @@ const CartItem = sequelize.define('CartItem', {
   tableName: 'cart_items',
   indexes: [
     {
-      unique: true,
-      fields: ['shopify_customer_id', 'variant_id']
+      fields: ['shopify_customer_id']
+    },
+    {
+      fields: ['browser_id']
     }
   ]
 });

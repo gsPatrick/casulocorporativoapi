@@ -17,12 +17,11 @@ class OrcamentoService {
     
     // Bypass Shopify 504 Timeout: Extraímos os Base64 pesados para processar em segundo plano
     const orcamentoId = require('crypto').randomUUID();
-    // 1.5 Sincronização com CartItem (v3.8.0): Se o item não tem imagem mas foi sincronizado antes
     const CartItem = require('../../models/CartItem');
     const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
-      console.log(`[SERVICE DEBUG]: Item recebido - VariantID: ${item.variant_id}, CID: ${data.customer_id}`);
+      console.log(`[SERVICE DEBUG]: Item recebido - VariantID: ${item.variant_id}, CID: ${data.customer_id}, BID: ${data.browser_id}`);
         
-        // Só busca item sincronizado se houver um cliente logado
+        // Busca item sincronizado via customer_id OU browser_id
         const synced = data.customer_id ? (await CartItem.findOne({
           where: { 
             shopify_customer_id: data.customer_id.toString(), 
@@ -34,10 +33,15 @@ class OrcamentoService {
             product_id: item.product_id.toString() 
           },
           order: [['updatedAt', 'DESC']]
-        }) : null)) : null;
+        }) : null)) : (data.browser_id ? await CartItem.findOne({
+          where: { 
+            browser_id: data.browser_id.toString(), 
+            variant_id: item.variant_id.toString() 
+          }
+        }) : null);
         
         if (synced && (synced.last_snapshot || synced.image_url)) {
-          console.log(`[SERVICE SUCCESS]: Snapshot recuperado para Variant ${item.variant_id} ${synced.product_id ? '(via Product Fallback)' : ''}`);
+          console.log(`[SERVICE SUCCESS]: Snapshot recuperado para Variant ${item.variant_id} (via ${data.customer_id ? 'Customer' : 'Browser'} ID)`);
           return { ...item, custom_image: synced.last_snapshot || synced.image_url };
         } else {
           console.log(`[SERVICE INFO]: Nenhum snapshot no banco para Variant ${item.variant_id} ou Product ${item.product_id}`);

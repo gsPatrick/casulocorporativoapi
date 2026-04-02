@@ -31,6 +31,7 @@ router.get('/go/:codigo', orcamentoController.redirectToConfig.bind(orcamentoCon
 router.use(validateShopifyProxy);
 
 router.post('/sync-item', orcamentoController.syncItem);
+router.post('/check-snapshots', orcamentoController.checkSnapshots);
 
 
 // Rota sensível que exige confirmação da sessão do cliente (Validado por Shopify/Customer ID)

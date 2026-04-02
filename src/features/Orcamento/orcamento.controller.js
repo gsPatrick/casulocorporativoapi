@@ -192,17 +192,17 @@ class OrcamentoController {
   async syncItem(req, res) {
     console.log(`\n[${new Date().toISOString()}] >>> [SYNC REQ]: Recebendo sincronização de item...`);
     
-    // Fallback para customer_id da query (App Proxy)
     const customer_id = req.body.customer_id || req.query.logged_in_customer_id;
+    const browser_id = req.body.browser_id;
     const variant_id = req.body.variant_id;
     const product_id = req.body.product_id;
     const { image, technical_specification } = req.body;
 
-    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Variant ID: ${variant_id}, Product ID: ${product_id}`);
+    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Browser ID: ${browser_id}, Variant ID: ${variant_id}`);
 
-    if (!customer_id || !variant_id) {
-      console.warn('[SYNC WARNING]: customer_id ou variant_id ausentes!');
-      return res.status(400).json({ error: 'customer_id e variant_id são obrigatórios' });
+    if ((!customer_id && !browser_id) || !variant_id) {
+      console.warn('[SYNC WARNING]: identificação (customer_id/browser_id) ou variant_id ausentes!');
+      return res.status(400).json({ error: 'ID do cliente ou navegador e variant_id são obrigatórios' });
     }
 
     try {
@@ -210,29 +210,33 @@ class OrcamentoController {
       const path = require('path');
       const fs = require('fs');
 
-      // 1. Salvar imagem no disco (temp/images)
+      // 1. Salvar imagem no disco
       let imageUrl = null;
       if (image && image.startsWith('data:image')) {
-        console.log(`[SYNC DEBUG]: Processando imagem Base64 (${(image.length / 1024).toFixed(1)} KB)`);
         const imagesDir = path.join(__dirname, '../../temp/images');
         if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
 
-        const filename = `sync-${customer_id}-${variant_id}.png`;
+        const syncId = customer_id || browser_id;
+        const filename = `sync-${syncId}-${variant_id}.png`;
         const filePath = path.join(imagesDir, filename);
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
         fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
         
-        imageUrl = `/apps/orcamento/sync-image/${customer_id}/${variant_id}`;
-        console.log(`[SYNC SUCCESS]: Imagem salva em disco: ${filename}`);
-      } else {
-        console.warn('[SYNC WARNING]: Nenhuma imagem Base64 recebida para sincronização.');
+        // Se for logado, usamos o padrão /sync-image/:customer_id/...
+        // Se for guest, o Bridge precisará saber como buscar. Para guest, servimos pelo browser_id.
+        imageUrl = customer_id ? `/apps/orcamento/sync-image/${customer_id}/${variant_id}` : null;
       }
 
       // 2. Atualizar ou Criar registro no DB
-      console.log('[SYNC DB]: Buscando/Criando registro no banco de dados...');
+      const where = customer_id ? 
+        { shopify_customer_id: customer_id.toString(), variant_id: variant_id.toString() } : 
+        { browser_id: browser_id.toString(), variant_id: variant_id.toString() };
+
       const [item, created] = await CartItem.findOrCreate({
-        where: { shopify_customer_id: customer_id.toString(), variant_id: variant_id.toString() },
+        where,
         defaults: {
+          shopify_customer_id: customer_id ? customer_id.toString() : null,
+          browser_id: browser_id ? browser_id.toString() : null,
           product_id: product_id ? product_id.toString() : null,
           technical_specification,
           image_url: imageUrl,
@@ -241,8 +245,9 @@ class OrcamentoController {
       });
 
       if (!created) {
-        console.log('[SYNC DB]: Registro existente encontrado. Atualizando...');
         await item.update({
+          shopify_customer_id: customer_id ? customer_id.toString() : item.shopify_customer_id,
+          browser_id: browser_id ? browser_id.toString() : item.browser_id,
           product_id: product_id ? product_id.toString() : item.product_id,
           technical_specification,
           image_url: imageUrl,
@@ -307,6 +312,37 @@ class OrcamentoController {
     } catch (error) {
       console.error('[ORCAMENTO CONTROLLER]: Erro no redirecionamento:', error.message);
       res.status(500).send('Erro interno ao redirecionar');
+    }
+  }
+
+  /**
+   * Verifica quais variantes possuem snapshots salvos (v4.1.0)
+   */
+  async checkSnapshots(req, res) {
+    try {
+      const { identifier, variant_ids } = req.body;
+      const CartItem = require('../../models/CartItem');
+      const { Op } = require('sequelize');
+
+      if (!identifier || !Array.isArray(variant_ids)) {
+        return res.status(400).json({ error: 'identifier e variant_ids (array) são obrigatórios' });
+      }
+
+      const items = await CartItem.findAll({
+        where: {
+          [Op.or]: [
+            { shopify_customer_id: identifier.toString() },
+            { browser_id: identifier.toString() }
+          ],
+          variant_id: { [Op.in]: variant_ids.map(v => v.toString()) }
+        }
+      });
+
+      const foundVariants = items.map(i => i.variant_id);
+      res.json({ found: foundVariants });
+    } catch (error) {
+      console.error('[ORCAMENTO CONTROLLER]: Erro ao verificar snapshots:', error.message);
+      res.status(500).send('Erro interno ao verificar snapshots');
     }
   }
 }
