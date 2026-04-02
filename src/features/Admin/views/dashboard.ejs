@@ -295,7 +295,23 @@
 
     <script>
         lucide.createIcons();
-        const getSessionToken = AppBridge.actions.getSessionToken;
+        
+        // Helper para pegar o token de sessão do Shopify App Bridge (v3.x / v4.x)
+        async function getAuthenticatedToken() {
+            try {
+                if (window.shopify && typeof window.shopify.idToken === 'function') {
+                    return await window.shopify.idToken();
+                }
+                const getSessionToken = AppBridge.actions.getSessionToken;
+                if (typeof getSessionToken === 'function') {
+                    return await getSessionToken(app);
+                }
+                return null;
+            } catch (err) {
+                console.error('[AUTH DEBUG]: Erro ao obter token do App Bridge:', err);
+                return null;
+            }
+        }
 
         function toggleEdit(id) {
             const row = document.getElementById(`edit-row-${id}`);
@@ -348,9 +364,12 @@
             });
 
             try {
-                const token = await getSessionToken(app);
+                const token = await getAuthenticatedToken();
+                if (!token) {
+                    throw new Error('Não foi possível obter o Token de Sessão do Shopify.');
+                }
 
-                const response = await fetch(`/admin/orcamento/${id}/update`, {
+                const response = await fetch(`${window.location.origin}/admin/orcamento/${id}/update`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
@@ -365,10 +384,13 @@
                     alert('Orçamento atualizado com sucesso! O cliente receberá o novo PDF por e-mail.');
                     toggleEdit(id);
                 } else {
-                    alert('Erro ao salvar orçamentos.');
+                    const errTxt = await response.text();
+                    console.error('[FETCH ERROR]:', errTxt);
+                    alert(`Erro ao salvar: ${response.status} ${response.statusText}`);
                 }
             } catch (err) {
-                alert('Erro na conexão com o servidor.');
+                console.error('[SAVE ERROR]:', err);
+                alert(`Erro na conexão: ${err.message}`);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -381,9 +403,12 @@
             if (!confirm(`Deseja alterar o status para "${newStatus}"?`)) return;
 
             try {
-                const token = await getSessionToken(app);
+                const token = await getAuthenticatedToken();
+                if (!token) {
+                    throw new Error('Não foi possível obter o Token de Sessão do Shopify.');
+                }
 
-                const response = await fetch(`/admin/orcamento/${id}/status`, {
+                const response = await fetch(`${window.location.origin}/admin/orcamento/${id}/status`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
@@ -398,9 +423,14 @@
                     const btnApprove = document.getElementById(`btn-approve-${id}`);
                     if (btnApprove) btnApprove.remove();
                     alert('Status atualizado!');
+                } else {
+                    const errTxt = await response.text();
+                    console.error('[STATUS ERROR]:', errTxt);
+                    alert(`Erro ao atualizar: ${response.status}`);
                 }
             } catch (err) {
-                alert('Erro ao atualizar status.');
+                console.error('[STATUS CATCH ERROR]:', err);
+                alert(`Erro ao atualizar: ${err.message}`);
             }
         }
     </script>
