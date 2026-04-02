@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Casulo | Painel de Orçamentos</title>
+    <!-- POLARIS CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/@shopify/polaris@12.0.0/build/esm/styles.css">
+    <script src="https://unpkg.com/@shopify/app-bridge@3.7.10/umd/index.js"></script>
+    <script>
+        const AppBridge = window['app-bridge'];
+        const createApp = AppBridge.default;
+        const app = createApp({
+            apiKey: '<%= apiKey %>',
+            host: '<%= host %>',
+            forceRedirect: true
+        });
+    </script>
+    <style>
+        body { background-color: #f6f6f7; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        .polaris-card { background: white; border-radius: 8px; box-shadow: 0 0 0 1px rgba(63, 63, 68, 0.05), 0 1px 3px 0 rgba(63, 63, 68, 0.15); padding: 20px; margin-bottom: 20px; }
+        .status-badge { padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; text-transform: uppercase; }
+        .status-pendente { background: #fff4e5; color: #b98900; }
+        .status-aprovado { background: #e3fbe3; color: #007f00; }
+        .status-cancelado { background: #fbeae5; color: #bf0711; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f1f1; color: #6d7175; font-size: 13px; }
+        td { padding: 12px; border-bottom: 1px solid #f1f1f1; font-size: 14px; color: #202223; }
+        .btn-view { color: #008060; font-weight: bold; cursor: pointer; text-decoration: none; }
+        .btn-approve { background: #008060; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-approve:disabled { background: #c1c1c1; }
+    </style>
+</head>
+<body>
+    <div class="polaris-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1 style="font-size: 20px; font-weight: bold;">📊 Painel de Orçamentos - Casulo B2B</h1>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" placeholder="Filtrar por Cliente..." style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <select style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">Status: Todos</option>
+                    <option value="pendente">Pendente</option>
+                    <option value="aprovado">Aprovado</option>
+                </select>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>ID</th>
+                    <th>Cliente / Empresa</th>
+                    <th>Vendedor</th>
+                    <th>Parceiro</th>
+                    <th>Status</th>
+                    <th>Valor Total</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% orcamentos.forEach(orc => { %>
+                    <tr id="row-<%= orc.id %>">
+                        <td><%= new Date(orc.createdAt).toLocaleDateString('pt-BR') %></td>
+                        <td style="font-family: monospace; font-size: 12px;"><%= orc.id.substring(0,8).toUpperCase() %></td>
+                        <td>
+                            <% if (orc.shopify_customer_id) { %>
+                                <span title="Shopify ID: <%= orc.shopify_customer_id %>">Cliente Shopify</span>
+                            <% } else if (orc.lead_json) { %>
+                                <%= orc.lead_json.nome %> (<%= orc.lead_json.whatsapp %>)
+                            <% } else { %>
+                                Visitante
+                            <% } %>
+                        </td>
+                        <td><%= orc.vendedor || '-' %></td>
+                        <td><%= orc.parceiro || '-' %></td>
+                        <td>
+                            <span class="status-badge status-<%= orc.status %>" id="badge-<%= orc.id %>">
+                                <%= orc.status %>
+                            </span>
+                        </td>
+                        <td style="font-weight: bold;">R$ <%= parseFloat(orc.total_price).toFixed(2).replace('.', ',') %></td>
+                        <td>
+                            <div style="display: flex; gap: 15px; align-items: center;">
+                                <a href="/api/orcamento/<%= orc.id %>/pdf" target="_blank" class="btn-view">Ver PDF</a>
+                                <% if (orc.status === 'pendente') { %>
+                                    <button onclick="changeStatus('<%= orc.id %>', 'aprovado')" class="btn-approve" id="btn-<%= orc.id %>">Aprovar</button>
+                                <% } %>
+                            </div>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function changeStatus(id, newStatus) {
+            const btn = document.getElementById(`btn-${id}`);
+            const badge = document.getElementById(`badge-${id}`);
+            
+            if (!confirm(`Deseja alterar o status para "${newStatus}"?`)) return;
+
+            btn.disabled = true;
+            btn.innerText = 'Processando...';
+
+            try {
+                const response = await fetch(`/admin/orcamento/${id}/status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) {
+                    badge.innerText = newStatus;
+                    badge.className = `status-badge status-${newStatus}`;
+                    btn.remove();
+                    alert('Status atualizado e sincronizado com Shopify!');
+                } else {
+                    alert('Erro ao atualizar status.');
+                    btn.disabled = false;
+                    btn.innerText = 'Aprovar';
+                }
+            } catch (err) {
+                alert('Erro na conexão com o servidor.');
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -281,6 +281,34 @@ class OrcamentoController {
       res.status(500).send('Erro ao servir imagem sincronizada');
     }
   }
+
+  /**
+   * Redireciona de uma URL curta (ex: /orcamento/ABC123) para a URL longa do Angle3D
+   */
+  async redirectToConfig(req, res) {
+    try {
+      const { codigo } = req.params;
+      const orcamento = await orcamentoService.getOrcamentoByShortCode(codigo);
+
+      if (!orcamento) {
+        return res.status(404).send('Orçamento não encontrado');
+      }
+
+      // Conforme briefing: Redirecionamento direto para a URL longa do configurador
+      const firstItem = orcamento.line_items_json[0];
+      const targetUrl = firstItem?.configuration_url;
+
+      if (!targetUrl) {
+        return res.status(400).send('URL de configuração não encontrada neste orçamento');
+      }
+
+      console.log(`[SHORT URL]: Redirecionando ${codigo} -> ${targetUrl}`);
+      res.redirect(targetUrl);
+    } catch (error) {
+      console.error('[ORCAMENTO CONTROLLER]: Erro no redirecionamento:', error.message);
+      res.status(500).send('Erro interno ao redirecionar');
+    }
+  }
 }
 
 module.exports = new OrcamentoController();

@@ -24,6 +24,9 @@ router.post('/', orcamentoController.create);
 router.post('/:id/snapshot', orcamentoController.uploadSnapshot);
 router.get('/:id/pdf', orcamentoController.generatePDF);
 
+// Rota de Redirecionamento de URL Curta (v4.0.0)
+router.get('/go/:codigo', orcamentoController.redirectToConfig.bind(orcamentoController));
+
 // Todas as rotas abaixo via App Proxy precisam de HMAC (Segurança Obrigatória)
 router.use(validateShopifyProxy);
 

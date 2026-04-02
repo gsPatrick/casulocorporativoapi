@@ -113,7 +113,13 @@ class PdfService {
         }
       }
 
-      const unitPrice = parseFloat(item.price || 0);
+      // Garantir que o preço seja tratado como número, removendo caracteres não numéricos se necessário
+      let rawPrice = item.price;
+      if (typeof rawPrice === 'string') {
+        rawPrice = rawPrice.replace(/[^\d.,]/g, '').replace(',', '.');
+      }
+      
+      const unitPrice = parseFloat(rawPrice || 0);
       const totalItem = unitPrice * (item.quantity || 1);
 
       items.push({
@@ -125,6 +131,8 @@ class PdfService {
     }
 
     const totalBudget = parseFloat(orcamento.total_price || 0);
+    const originalBudget = parseFloat(orcamento.original_price || orcamento.total_price || 0);
+    const totalDiscount = parseFloat(orcamento.discount_amount || 0);
 
     return {
       id: orcamento.id,
@@ -134,6 +142,8 @@ class PdfService {
       customer_email: lead.email || 'N/A',
       customer_whatsapp: lead.whatsapp || 'N/A',
       items,
+      original_formatted: originalBudget > 0 ? `R$ ${originalBudget.toFixed(2).replace('.', ',')}` : 'A Definir',
+      discount_formatted: totalDiscount > 0 ? `R$ ${totalDiscount.toFixed(2).replace('.', ',')}` : null,
       total_formatted: totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir (B2B)'
     };
   }

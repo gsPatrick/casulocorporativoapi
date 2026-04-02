@@ -6,11 +6,12 @@ router.use((req, res, next) => {
 });
 
 const orcamentoRoutes = require('../features/Orcamento/orcamento.routes');
+const adminRoutes = require('../features/Admin/admin.routes');
 
 // Rotas unificadas para suportar tanto chamadas diretas quanto via App Proxy
-// O App Proxy do Shopify adiciona prefixos que podem causar duplicidade (/api/api/...)
 router.use('/orcamento', orcamentoRoutes);
 router.use('/api/orcamento', orcamentoRoutes); 
+router.use('/admin', adminRoutes); // Dashboard e Adm (v4.0.0)
 
 // Rota raiz para redirecionamentos e redundância
 router.use('/', (req, res, next) => {

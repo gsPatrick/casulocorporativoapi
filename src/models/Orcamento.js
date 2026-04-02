@@ -23,6 +23,28 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
   },
+  original_price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
+  discount_amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0,
+  },
+  short_code: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true,
+  },
+  vendedor: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  parceiro: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   status: {
     type: DataTypes.STRING,
     defaultValue: 'pendente', // pendente, enviado, aprovado, cancelado

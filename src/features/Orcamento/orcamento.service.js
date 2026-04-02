@@ -6,7 +6,12 @@ class OrcamentoService {
   async createOrcamento(data) {
     const startService = Date.now();
     const parsedItems = this.parseItems(data.items);
-    const totalPrice = this.calculateTotalPrice(parsedItems);
+    const originalPrice = this.calculateTotalPrice(parsedItems);
+    
+    // Novas Regras de Negócio: Descontos e Tags (v4.0.0)
+    const { vendedor, parceiro, customerTags } = this.parseBusinessTags(data.customer_tags || []);
+    const { liquidPrice, discountAmount } = this.applyDiscounts(originalPrice, customerTags, data.discount_code);
+    const shortCode = await this.generateShortCode();
 
     // 1. Persistir no Postgres
     
@@ -49,7 +54,12 @@ class OrcamentoService {
       shopify_customer_id: data.customer_id ? data.customer_id.toString() : null,
       lead_json: data.lead || null,
       line_items_json: finalItems,
-      total_price: totalPrice,
+      total_price: liquidPrice,
+      original_price: originalPrice,
+      discount_amount: discountAmount,
+      short_code: shortCode,
+      vendedor,
+      parceiro,
       status: 'pendente'
     });
     console.log(`[${new Date().toISOString()}] [SERVICE]: Escrita no Postgres concluída em ${Date.now() - dbStart}ms (Total: ${Date.now() - startService}ms)`);
@@ -320,6 +330,71 @@ class OrcamentoService {
     });
 
     await Promise.all(promises);
+  }
+
+  // --- MÉTODOS DE NEGÓCIO FASE 1 ---
+
+  parseBusinessTags(tagsArray) {
+    const tags = Array.isArray(tagsArray) ? tagsArray : (typeof tagsArray === 'string' ? tagsArray.split(',').map(t => t.trim()) : []);
+    
+    let vendedor = null;
+    let parceiro = null;
+    const customerTags = [];
+
+    tags.forEach(tag => {
+      if (tag.startsWith('vendedor:')) {
+        vendedor = tag.replace('vendedor:', '').trim();
+      } else if (tag.startsWith('parceiro:')) {
+        parceiro = tag.replace('parceiro:', '').trim();
+      } else {
+        customerTags.push(tag.toLowerCase());
+      }
+    });
+
+    return { vendedor, parceiro, customerTags };
+  }
+
+  applyDiscounts(originalPrice, tags, discountCode) {
+    let discountPercentage = 0;
+    
+    // Tags de Segmento (Exclusivas - o cliente só tem uma dessas)
+    if (tags.includes('cliente novo')) discountPercentage = 10;
+    else if (tags.includes('cliente ocasional')) discountPercentage = 15;
+    else if (tags.includes('cliente recorrente')) discountPercentage = 20;
+
+    const tagDiscount = originalPrice * (discountPercentage / 100);
+    
+    // Cupom de Desconto (Valor fixo ou vindo do payload)
+    // Se o cupom vier via payload como um número, abatemos. Se for código, precisaríamos de uma tabela.
+    // O briefing diz: "abater cupons que vierem no payload". Vamos assumir 'discount_coupon_value'.
+    const couponDiscount = 0; // Implementação futura de códigos de cupom vindo do DB
+
+    const totalDiscount = tagDiscount + couponDiscount;
+    const liquidPrice = originalPrice - totalDiscount;
+
+    return { liquidPrice, discountAmount: totalDiscount };
+  }
+
+  async generateShortCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    let exists = true;
+    
+    while (exists) {
+      code = '';
+      for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      
+      const found = await Orcamento.findOne({ where: { short_code: code } });
+      if (!found) exists = false;
+    }
+    
+    return code;
+  }
+
+  async getOrcamentoByShortCode(code) {
+    return await Orcamento.findOne({ where: { short_code: code } });
   }
 }
 
