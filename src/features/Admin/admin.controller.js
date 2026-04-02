@@ -107,7 +107,7 @@ class AdminController {
   async updateOrcamento(req, res) {
     try {
       const { id } = req.params;
-      const { items } = req.body; // Array de { title, price }
+      const { items, discount_type, discount_value } = req.body;
       
       const session = await this.validateSession(req, res);
       if (!session) return;
@@ -115,17 +115,18 @@ class AdminController {
       const orcamento = await Orcamento.findByPk(id);
       if (!orcamento) return res.status(404).json({ error: 'Orçamento não encontrado' });
 
-      // 1. Recalcular Total baseado nos novos preços editados
-      let newTotal = 0;
+      // 1. Recalcular Subtotal dos Itens
+      let subtotal = 0;
       const updatedItems = orcamento.line_items_json.map((dbItem, index) => {
         const edited = items[index];
-        // Garantir que trabalhamos com um objeto puro
         const itemData = typeof dbItem.get === 'function' ? dbItem.get({ plain: true }) : dbItem;
 
         if (edited) {
-          const price = parseFloat(edited.price.replace(',', '.')) || 0;
+          // Limpar máscara de moeda (R$ 1.234,56 -> 1234.56)
+          const cleanPrice = edited.price.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
+          const price = parseFloat(cleanPrice) || 0;
           const qty = parseInt(itemData.quantity) || 1;
-          newTotal += price * qty;
+          subtotal += price * qty;
           return {
             ...itemData,
             title: edited.title || itemData.title,
@@ -133,12 +134,45 @@ class AdminController {
             technical_specification: edited.technical_specification || itemData.technical_specification
           };
         }
+        const price = parseFloat(itemData.price) || 0;
+        subtotal += price * (itemData.quantity || 1);
         return itemData;
       });
 
-      // 2. Persistir no Banco de Dados
+      // 2. Processar Desconto Centralizado
+      let discountAmount = 0;
+      let discountCategory = orcamento.discount_category;
+
+      if (discount_type === 'none') {
+        discountAmount = 0;
+        discountCategory = null;
+      } else if (discount_type === 'novo') {
+        discountAmount = subtotal * 0.10;
+        discountCategory = 'Cliente Novo';
+      } else if (discount_type === 'ocasional') {
+        discountAmount = subtotal * 0.15;
+        discountCategory = 'Cliente Ocasional';
+      } else if (discount_type === 'recorrente') {
+        discountAmount = subtotal * 0.20;
+        discountCategory = 'Cliente Recorrente';
+      } else if (discount_type === 'manual_percent') {
+        const pct = parseFloat(discount_value.replace(',', '.')) || 0;
+        discountAmount = subtotal * (pct / 100);
+        discountCategory = 'Desconto Manual (%)';
+      } else if (discount_type === 'manual_fixed') {
+        const cleanVal = discount_value.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
+        discountAmount = parseFloat(cleanVal) || 0;
+        discountCategory = 'Desconto Manual (R$)';
+      }
+
+      const newTotal = subtotal - discountAmount;
+
+      // 3. Persistir no Banco de Dados
       await orcamento.update({
         line_items_json: updatedItems,
+        original_price: subtotal,
+        discount_amount: discountAmount,
+        discount_category: discountCategory,
         total_price: newTotal
       });
 

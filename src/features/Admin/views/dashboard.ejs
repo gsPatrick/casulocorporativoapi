@@ -248,7 +248,7 @@
                                                     <div>
                                                         <label class="label-premium">Preço Unitário (R$)</label>
                                                         <input type="text" name="items[<%= idx %>][price]" value="<%= parseFloat(item.price || 0).toFixed(2).replace('.', ',') %>" 
-                                                               class="input-premium item-price-input" data-orc-id="<%= orc.id %>" oninput="recalcTotal('<%= orc.id %>')">
+                                                               class="input-premium item-price-input money-mask" data-orc-id="<%= orc.id %>" oninput="recalcTotal('<%= orc.id %>')">
                                                     </div>
                                                     <div>
                                                         <label class="label-premium">Qtd</label>
@@ -270,18 +270,40 @@
                                         </div>
                                     <% }); %>
 
-                                    <div class="summary-box">
-                                        <div style="font-size: 11px; color: #666; margin-bottom: 5px;">
-                                            SUBTOTAL ORIGINAL: R$ <%= parseFloat(orc.original_price || orc.total_price).toFixed(2).replace('.', ',') %>
-                                        </div>
-                                        <% if (parseFloat(orc.discount_amount) > 0) { %>
-                                            <div style="font-size: 11px; color: #d32f2f; margin-bottom: 5px;">
-                                                DESCONTO APLICADO (<%= orc.discount_category || 'Especial' %>): - R$ <%= parseFloat(orc.discount_amount).toFixed(2).replace('.', ',') %>
+                                    <div class="summary-box" style="text-align: left; background: #fafafa; border: 1px solid #ddd;">
+                                        <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px;">
+                                            <div>
+                                                <label class="label-premium">Regra de Desconto / Categoria</label>
+                                                <select name="discount_type" class="input-premium" style="margin-bottom: 15px;" onchange="toggleManualDiscount('<%= orc.id %>')">
+                                                    <option value="none" <%= (!orc.discount_category) ? 'selected' : '' %>>Sem Desconto (0%)</option>
+                                                    <option value="novo" <%= (orc.discount_category === 'Cliente Novo') ? 'selected' : '' %>>Cliente Novo (10%)</option>
+                                                    <option value="ocasional" <%= (orc.discount_category === 'Cliente Ocasional') ? 'selected' : '' %>>Cliente Ocasional (15%)</option>
+                                                    <option value="recorrente" <%= (orc.discount_category === 'Cliente Recorrente') ? 'selected' : '' %>>Cliente Recorrente (20%)</option>
+                                                    <option value="manual_percent" <%= (orc.discount_category === 'Desconto Manual (%)') ? 'selected' : '' %>>Desconto Manual (%)</option>
+                                                    <option value="manual_fixed" <%= (orc.discount_category === 'Desconto Manual (R$)') ? 'selected' : '' %>>Desconto Manual (Valor Fixo R$)</option>
+                                                </select>
+                                                
+                                                <div id="manual-discount-container-<%= orc.id %>" style="display: <%= (orc.discount_category && orc.discount_category.includes('Manual')) ? 'block' : 'none' %>;">
+                                                    <label class="label-premium">Valor do Desconto</label>
+                                                    <input type="text" name="discount_value" value="<%= parseFloat(orc.discount_amount || 0).toFixed(2).replace('.', ',') %>" 
+                                                           class="input-premium money-mask" oninput="recalcTotal('<%= orc.id %>')">
+                                                </div>
                                             </div>
-                                        <% } %>
-                                        VALOR FINAL LÍQUIDO: <span style="font-size: 18px; margin-left: 10px;" id="recalc-total-<%= orc.id %>">
-                                            R$ <%= parseFloat(orc.total_price).toFixed(2).replace('.', ',') %>
-                                        </span>
+                                            <div style="text-align: right; border-left: 1px solid #eee; padding-left: 20px;">
+                                                <div style="font-size: 11px; color: #666; margin-bottom: 5px;">
+                                                    SUBTOTAL ITENS: <span id="subtotal-val-<%= orc.id %>">R$ <%= parseFloat(orc.original_price || orc.total_price).toFixed(2).replace('.', ',') %></span>
+                                                </div>
+                                                <div style="font-size: 11px; color: #d32f2f; margin-bottom: 5px;" id="discount-display-container-<%= orc.id %>">
+                                                    DESCONTO: - <span id="discount-val-<%= orc.id %>">R$ <%= parseFloat(orc.discount_amount || 0).toFixed(2).replace('.', ',') %></span>
+                                                </div>
+                                                <div style="font-weight: 800; font-size: 14px; margin-top: 10px; color: #000;">
+                                                    TOTAL LÍQUIDO: <br>
+                                                    <span style="font-size: 22px;" id="recalc-total-<%= orc.id %>">
+                                                        R$ <%= parseFloat(orc.total_price).toFixed(2).replace('.', ',') %>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px;">
@@ -302,86 +324,103 @@
     <script>
         lucide.createIcons();
         
-        // Helper para pegar o token de sessão do Shopify App Bridge (v3.x / v4.x / Fallback URL)
         async function getAuthenticatedToken() {
             try {
-                // 1. App Bridge 4.0 (Moderno/Scriptless)
                 if (window.shopify && typeof window.shopify.idToken === 'function') {
-                    console.log('[AUTH]: Tentando window.shopify.idToken()');
                     return await window.shopify.idToken();
                 }
-
-                // 2. App Bridge Utils (Oficial v3.x)
-                if (window['app-bridge-utils'] && window['app-bridge-utils'].getSessionToken) {
-                    console.log('[AUTH]: Tentando app-bridge-utils.getSessionToken()');
-                    return await window['app-bridge-utils'].getSessionToken(app);
-                }
-
-                // 3. App Bridge Actions (Legado v2/v3)
-                const getSessionToken = AppBridge.actions.getSessionToken;
-                if (typeof getSessionToken === 'function') {
-                    console.log('[AUTH]: Tentando AppBridge.actions.getSessionToken()');
-                    const token = await getSessionToken(app);
-                    if (token) return token;
-                }
-
-                // 4. Fallback: URL do App Proxy/Embedded (id_token vindo do Shopify)
                 const urlParams = new URLSearchParams(window.location.search);
-                const idToken = urlParams.get('id_token');
-                if (idToken) {
-                    console.log('[AUTH]: Usando id_token vindo da URL (Fallback)');
-                    return idToken;
-                }
-
-                return null;
+                const idToken = urlParams.get('id_token') || urlParams.get('session');
+                return idToken;
             } catch (err) {
-                console.error('[AUTH DEBUG]: Erro catastrófico ao obter token:', err);
-                return null;
+                console.error('[AUTH ERROR]:', err);
+                return new URLSearchParams(window.location.search).get('id_token');
             }
         }
 
         function toggleEdit(id) {
             const row = document.getElementById(`edit-row-${id}`);
             const isVisible = row.style.display === 'table-row';
-            
-            // Fecha todos antes
             document.querySelectorAll('.edit-row').forEach(r => r.style.display = 'none');
-            
-            if (!isVisible) {
-                row.style.display = 'table-row';
-            }
+            if (!isVisible) row.style.display = 'table-row';
         }
 
-        function recalcTotal(orcId) {
-            let total = 0;
-            const form = document.getElementById(`form-${orcId}`);
+        function recalcTotal(id) {
+            const form = document.getElementById(`form-${id}`);
             const priceInputs = form.querySelectorAll('.item-price-input');
             const qtyInputs = form.querySelectorAll('.item-qty-input');
-            
+            const discountType = form.querySelector('[name="discount_type"]').value;
+            const discountValueInput = form.querySelector('[name="discount_value"]');
+
+            let subtotal = 0;
             priceInputs.forEach((input, idx) => {
-                const val = parseFloat(input.value.replace(',', '.')) || 0;
+                const cleaned = input.value.replace(/\./g, '').replace(',', '.');
+                const price = parseFloat(cleaned) || 0;
                 const qty = parseInt(qtyInputs[idx].value) || 1;
-                total += val * qty;
+                subtotal += price * qty;
             });
-            document.getElementById(`recalc-total-${orcId}`).innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+
+            let discountAmount = 0;
+            if (discountType === 'novo') discountAmount = subtotal * 0.10;
+            else if (discountType === 'ocasional') discountAmount = subtotal * 0.15;
+            else if (discountType === 'recorrente') discountAmount = subtotal * 0.20;
+            else if (discountType === 'manual_percent') {
+                const pct = parseFloat(discountValueInput.value.replace(',', '.')) || 0;
+                discountAmount = subtotal * (pct / 100);
+            } else if (discountType === 'manual_fixed') {
+                const cleaned = discountValueInput.value.replace(/\./g, '').replace(',', '.');
+                discountAmount = parseFloat(cleaned) || 0;
+            }
+
+            const total = subtotal - discountAmount;
+
+            document.getElementById(`subtotal-val-${id}`).innerText = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById(`discount-val-${id}`).innerText = discountAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById(`recalc-total-${id}`).innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
+
+        function toggleManualDiscount(id) {
+            const form = document.getElementById(`form-${id}`);
+            const type = form.querySelector('[name="discount_type"]').value;
+            const container = document.getElementById(`manual-discount-container-${id}`);
+            if (type.startsWith('manual')) {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+            recalcTotal(id);
+        }
+
+        // MÁSCARA DE MOEDA (R$)
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('money-mask')) {
+                let value = e.target.value.replace(/\D/g, '');
+                value = (value / 100).toFixed(2) + '';
+                value = value.replace(".", ",");
+                const parts = value.split(',');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                e.target.value = parts.join(',');
+                
+                const orcId = e.target.getAttribute('data-orc-id') || e.target.closest('form')?.onsubmit?.toString().match(/'([\w-]+)'/)[1];
+                if (orcId) recalcTotal(orcId);
+            }
+        });
 
         async function saveOrcamento(id) {
             const btn = document.getElementById(`btn-save-${id}`);
             const originalText = btn.innerHTML;
             btn.disabled = true;
-            btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> Salvando...';
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> SALVANDO...';
             lucide.createIcons();
 
             const form = document.getElementById(`form-${id}`);
-            const formData = new FormData(form);
-            const items = [];
-            
-            // Reconstruir o array de itens do form
             const priceInputs = form.querySelectorAll('.item-price-input');
             const titleInputs = form.querySelectorAll('input[name*="[title]"]');
             const specInputs = form.querySelectorAll('textarea[name*="[technical_specification]"]');
-            
+            const discountType = form.querySelector('[name="discount_type"]').value;
+            const discountValue = form.querySelector('[name="discount_value"]').value;
+
+            const items = [];
             priceInputs.forEach((input, idx) => {
                 items.push({
                     title: titleInputs[idx].value,
@@ -392,32 +431,22 @@
 
             try {
                 const token = await getAuthenticatedToken();
-                if (!token) {
-                    throw new Error('Não foi possível obter o Token de Sessão do Shopify.');
-                }
-
                 const response = await fetch(`${window.location.origin}/admin/orcamento/${id}/update`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ items })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ items, discount_type: discountType, discount_value: discountValue })
                 });
 
                 if (response.ok) {
                     const result = await response.json();
-                    document.getElementById(`display-total-${id}`).innerText = `R$ ${result.total.toFixed(2).replace('.', ',')}`;
-                    alert('Orçamento atualizado com sucesso! O cliente receberá o novo PDF por e-mail.');
+                    document.getElementById(`display-total-${id}`).innerText = result.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    alert('Orçamento atualizado e novo PDF enviado ao cliente!');
                     toggleEdit(id);
                 } else {
-                    const errTxt = await response.text();
-                    console.error('[FETCH ERROR]:', errTxt);
-                    alert(`Erro ao salvar: ${response.status} ${response.statusText}`);
+                    alert('Erro ao salvar orçamento.');
                 }
             } catch (err) {
-                console.error('[SAVE ERROR]:', err);
-                alert(`Erro na conexão: ${err.message}`);
+                alert(`Erro: ${err.message}`);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -427,37 +456,21 @@
 
         async function changeStatus(id, newStatus) {
             const badge = document.getElementById(`badge-${id}`);
-            if (!confirm(`Deseja alterar o status para "${newStatus}"?`)) return;
-
+            if (!confirm(`Deseja alterar para "${newStatus}"?`)) return;
             try {
                 const token = await getAuthenticatedToken();
-                if (!token) {
-                    throw new Error('Não foi possível obter o Token de Sessão do Shopify.');
-                }
-
                 const response = await fetch(`${window.location.origin}/admin/orcamento/${id}/status`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ status: newStatus })
                 });
-
                 if (response.ok) {
                     badge.innerText = newStatus;
                     badge.className = `status-badge status-${newStatus}`;
-                    const btnApprove = document.getElementById(`btn-approve-${id}`);
-                    if (btnApprove) btnApprove.remove();
                     alert('Status atualizado!');
-                } else {
-                    const errTxt = await response.text();
-                    console.error('[STATUS ERROR]:', errTxt);
-                    alert(`Erro ao atualizar: ${response.status}`);
                 }
             } catch (err) {
-                console.error('[STATUS CATCH ERROR]:', err);
-                alert(`Erro ao atualizar: ${err.message}`);
+                alert(`Erro: ${err.message}`);
             }
         }
     </script>
