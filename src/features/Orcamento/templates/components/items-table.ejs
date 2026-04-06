@@ -1,7 +1,7 @@
 <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px;">
     <thead>
         <tr style="background-color: #f9f9f9; border-bottom: 1px solid #ddd; text-align: left;">
-            <th style="padding: 10px; border: 1px solid #ddd; width: 180px; text-align: center;">Imagem</th>
+            <th style="padding: 10px; border: 1px solid #ddd; width: 260px; text-align: center;">Produto</th>
             <th style="padding: 10px; border: 1px solid #ddd;">Descrição do produto/serviço</th>
             <th style="padding: 10px; border: 1px solid #ddd; width: 40px; text-align: center;">Qtd.</th>
             <th style="padding: 10px; border: 1px solid #ddd; width: 80px; text-align: right;">Preço un.</th>
@@ -13,9 +13,9 @@
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding: 10px; border: 1px solid #ddd; text-align: center; vertical-align: top;">
                     <% if (item.custom_image_base64) { %>
-                        <img src="data:image/png;base64,<%= item.custom_image_base64 %>" style="width: 170px; height: auto; border: 1px solid #eee; border-radius: 4px;">
+                        <img src="data:image/png;base64,<%= item.custom_image_base64 %>" style="width: 240px; height: auto; border: 1px solid #eee; border-radius: 4px;">
                     <% } else { %>
-                        <div style="width: 170px; height: 170px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999; border-radius: 4px;">Sem imagem</div>
+                        <div style="width: 240px; height: 240px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999; border-radius: 4px;">Sem imagem</div>
                     <% } %>
                 </td>
                 <td style="padding: 10px; border: 1px solid #ddd; vertical-align: top;">
