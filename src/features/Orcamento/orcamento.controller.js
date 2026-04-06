@@ -195,14 +195,15 @@ class OrcamentoController {
     const customer_id = req.body.customer_id || req.query.logged_in_customer_id;
     const browser_id = req.body.browser_id;
     const variant_id = req.body.variant_id;
+    const angle3d_id = req.body.angle3d_id; // Novo
     const product_id = req.body.product_id;
     const { image, technical_specification } = req.body;
 
-    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Browser ID: ${browser_id}, Variant ID: ${variant_id}`);
+    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Browser ID: ${browser_id}, Variant ID: ${variant_id}${angle3d_id ? ', Angle3D ID: ' + angle3d_id : ''}`);
 
-    if ((!customer_id && !browser_id) || !variant_id) {
-      console.warn('[SYNC WARNING]: identificação (customer_id/browser_id) ou variant_id ausentes!');
-      return res.status(400).json({ error: 'ID do cliente ou navegador e variant_id são obrigatórios' });
+    if ((!customer_id && !browser_id) || (!variant_id && !angle3d_id)) {
+      console.warn('[SYNC WARNING]: identificação ou variante ausentes!');
+      return res.status(400).json({ error: 'ID do cliente/navegador e variant_id/angle3d_id são obrigatórios' });
     }
 
     try {
@@ -217,47 +218,48 @@ class OrcamentoController {
         if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
 
         const syncId = customer_id || browser_id;
-        const filename = `sync-${syncId}-${variant_id}.png`;
+        // Se for bundle, usamos o angle3d_id no nome do arquivo para maior precisão
+        const fileId = angle3d_id || variant_id;
+        const filename = `sync-${syncId}-${fileId}.png`;
         const filePath = path.join(imagesDir, filename);
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
         fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
         
-        // Se for logado, usamos o padrão /sync-image/:customer_id/...
-        // Se for guest, o Bridge precisará saber como buscar. Para guest, servimos pelo browser_id.
-        imageUrl = customer_id ? `/apps/orcamento/sync-image/${customer_id}/${variant_id}` : null;
+        imageUrl = customer_id ? `/apps/orcamento/sync-image/${customer_id}/${fileId}` : null;
       }
 
       // 2. Atualizar ou Criar registro no DB
-      const where = customer_id ? 
-        { shopify_customer_id: customer_id.toString(), variant_id: variant_id.toString() } : 
-        { browser_id: browser_id.toString(), variant_id: variant_id.toString() };
+      // IMPORTANTE: Sincronizamos usando tanto o variant_id quanto o angle3d_id
+      const idsToSync = [variant_id, angle3d_id].filter(Boolean);
+      
+      for (const currentVid of idsToSync) {
+        const where = customer_id ? 
+          { shopify_customer_id: customer_id.toString(), variant_id: currentVid.toString() } : 
+          { browser_id: browser_id.toString(), variant_id: currentVid.toString() };
 
-      const [item, created] = await CartItem.findOrCreate({
-        where,
-        defaults: {
-          shopify_customer_id: customer_id ? customer_id.toString() : null,
-          browser_id: browser_id ? browser_id.toString() : null,
-          product_id: product_id ? product_id.toString() : null,
-          technical_specification,
-          image_url: imageUrl,
-          last_snapshot: image
-        }
-      });
-
-      if (!created) {
-        await item.update({
-          shopify_customer_id: customer_id ? customer_id.toString() : item.shopify_customer_id,
-          browser_id: browser_id ? browser_id.toString() : item.browser_id,
-          product_id: product_id ? product_id.toString() : item.product_id,
-          technical_specification,
-          image_url: imageUrl,
-          last_snapshot: image
+        const [item, created] = await CartItem.findOrCreate({
+          where,
+          defaults: {
+            shopify_customer_id: customer_id ? customer_id.toString() : null,
+            browser_id: browser_id ? browser_id.toString() : null,
+            product_id: product_id ? product_id.toString() : null,
+            technical_specification,
+            image_url: imageUrl,
+            last_snapshot: image
+          }
         });
-      } else {
-        console.log('[SYNC DB]: Novo registro de item criado com sucesso.');
+
+        if (!created) {
+          await item.update({
+            product_id: product_id ? product_id.toString() : item.product_id,
+            technical_specification,
+            image_url: imageUrl,
+            last_snapshot: image
+          });
+        }
       }
 
-      console.log(`[${new Date().toISOString()}] <<< [SYNC SUCCESS]: Item ${variant_id} sincronizado para cliente ${customer_id}`);
+      console.log(`[${new Date().toISOString()}] <<< [SYNC SUCCESS]: Item ${variant_id} (e possible bundle) sincronizado.`);
       res.json({ success: true, image_url: imageUrl });
     } catch (error) {
       console.error('[SYNC ERROR]:', error.message);
