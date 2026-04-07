@@ -322,7 +322,8 @@ class OrcamentoController {
    */
   async checkSnapshots(req, res) {
     try {
-      const { identifier, variant_ids } = req.body;
+      const identifier = req.body.identifier || req.query.logged_in_customer_id;
+      const { variant_ids } = req.body;
       const CartItem = require('../../models/CartItem');
       const { Op } = require('sequelize');
 
