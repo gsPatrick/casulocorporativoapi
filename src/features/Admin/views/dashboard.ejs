@@ -189,17 +189,6 @@
                 <option value="convidado">Convidado (Lead)</option>
             </select>
         </div>
-        <div>
-            <label class="label-premium">Regra de Desconto</label>
-            <select id="filter-category" class="input-premium" onchange="applyFilters()">
-                <option value="all">Todas as Regras</option>
-                <option value="Cliente Novo">Cliente Novo (10%)</option>
-                <option value="Cliente Ocasional">Cliente Ocasional (15%)</option>
-                <option value="Cliente Recorrente">Cliente Recorrente (20%)</option>
-                <option value="Desconto Manual">Desconto Manual</option>
-                <option value="none">Sem Desconto</option>
-            </select>
-        </div>
         <div style="display: flex; align-items: flex-end;">
             <button class="btn-black btn-outline" style="width: 100%; height: 38px;" onclick="resetFilters()">Limpar Filtros</button>
         </div>
@@ -224,7 +213,6 @@
                         onclick="toggleEdit('<%= orc.id %>')"
                         data-status="<%= orc.status %>"
                         data-customer="<%= orc.customer_type || 'convidado' %>"
-                        data-category="<%= orc.discount_category || 'none' %>"
                         data-search="<%= (orc.customer_name || '').toLowerCase() %> <%= (orc.customer_email || '').toLowerCase() %> <%= (orc.id || '').substring(0,8).toLowerCase() %> <%= (orc.vendedor || '').toLowerCase() %> <%= (orc.customer_tags || []).join(' ').toLowerCase() %> <%= (orc.lead_json?.empresa || '').toLowerCase() %> <%= (orc.lead_json?.cep || '').toLowerCase() %>"
                     >
                         <td style="font-weight: 500;"><%= new Date(orc.createdAt).toLocaleDateString('pt-BR') %></td>
@@ -246,11 +234,6 @@
                                 <span class="status-badge" style="font-size: 9px; padding: 2px 6px;">
                                     <%= orc.customer_type || 'convidado' %>
                                 </span>
-                                <% if (orc.discount_category) { %>
-                                    <span class="status-badge" style="font-size: 9px; padding: 2px 6px; background: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb;">
-                                        <%= orc.discount_category %>
-                                    </span>
-                                <% } %>
                             </div>
                             <div style="margin-top: 6px; display: flex; gap: 4px; flex-wrap: wrap;">
                                 <% (orc.customer_tags || []).forEach(tag => { %>
@@ -345,30 +328,9 @@
                                     <% }); %>
 
                                     <div class="summary-box" style="text-align: left; background: #fafafa; border: 1px solid #ddd;">
-                                        <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px;">
-                                            <div>
-                                                <label class="label-premium">Regra de Desconto / Categoria</label>
-                                                <select name="discount_type" class="input-premium" style="margin-bottom: 15px;" onchange="toggleManualDiscount('<%= orc.id %>')">
-                                                    <option value="none" <%= (!orc.discount_category) ? 'selected' : '' %>>Sem Desconto (0%)</option>
-                                                    <option value="novo" <%= (orc.discount_category === 'Cliente Novo') ? 'selected' : '' %>>Cliente Novo (10%)</option>
-                                                    <option value="ocasional" <%= (orc.discount_category === 'Cliente Ocasional') ? 'selected' : '' %>>Cliente Ocasional (15%)</option>
-                                                    <option value="recorrente" <%= (orc.discount_category === 'Cliente Recorrente') ? 'selected' : '' %>>Cliente Recorrente (20%)</option>
-                                                    <option value="manual_percent" <%= (orc.discount_category === 'Desconto Manual (%)') ? 'selected' : '' %>>Desconto Manual (%)</option>
-                                                    <option value="manual_fixed" <%= (orc.discount_category === 'Desconto Manual (R$)') ? 'selected' : '' %>>Desconto Manual (Valor Fixo R$)</option>
-                                                </select>
-                                                
-                                                <div id="manual-discount-container-<%= orc.id %>" style="display: <%= (orc.discount_category && orc.discount_category.includes('Manual')) ? 'block' : 'none' %>;">
-                                                    <label class="label-premium">Valor do Desconto</label>
-                                                    <input type="text" name="discount_value" value="<%= parseFloat(orc.discount_amount || 0).toFixed(2).replace('.', ',') %>" 
-                                                           class="input-premium money-mask" oninput="recalcTotal('<%= orc.id %>')">
-                                                </div>
-                                            </div>
                                             <div style="text-align: right; border-left: 1px solid #eee; padding-left: 20px;">
                                                 <div style="font-size: 11px; color: #666; margin-bottom: 5px;">
                                                     SUBTOTAL ITENS: <span id="subtotal-val-<%= orc.id %>">R$ <%= parseFloat(orc.original_price || orc.total_price).toFixed(2).replace('.', ',') %></span>
-                                                </div>
-                                                <div style="font-size: 11px; color: #d32f2f; margin-bottom: 5px;" id="discount-display-container-<%= orc.id %>">
-                                                    DESCONTO: - <span id="discount-val-<%= orc.id %>">R$ <%= parseFloat(orc.discount_amount || 0).toFixed(2).replace('.', ',') %></span>
                                                 </div>
                                                 <div style="font-weight: 800; font-size: 14px; margin-top: 10px; color: #000;">
                                                     TOTAL LÍQUIDO: <br>
@@ -437,7 +399,6 @@
             const searchText = document.getElementById('search-input').value.toLowerCase();
             const filterStatus = document.getElementById('filter-status').value;
             const filterCustomer = document.getElementById('filter-customer').value;
-            const filterCategory = document.getElementById('filter-category').value;
 
             const rows = document.querySelectorAll('.budget-row');
             
@@ -450,9 +411,8 @@
                 const matchesSearch = searchData.includes(searchText);
                 const matchesStatus = filterStatus === 'all' || rowStatus === filterStatus;
                 const matchesCustomer = filterCustomer === 'all' || rowCustomer === filterCustomer;
-                const matchesCategory = filterCategory === 'all' || rowCategory.includes(filterCategory) || (filterCategory === 'none' && rowCategory === 'none');
 
-                if (matchesSearch && matchesStatus && matchesCustomer && matchesCategory) {
+                if (matchesSearch && matchesStatus && matchesCustomer) {
                     row.style.display = 'table-row';
                 } else {
                     row.style.display = 'none';
@@ -468,8 +428,6 @@
             const form = document.getElementById(`form-${id}`);
             const priceInputs = form.querySelectorAll('.item-price-input');
             const qtyInputs = form.querySelectorAll('.item-qty-input');
-            const discountType = form.querySelector('[name="discount_type"]').value;
-            const discountValueInput = form.querySelector('[name="discount_value"]');
 
             let subtotal = 0;
             priceInputs.forEach((input, idx) => {
@@ -479,36 +437,10 @@
                 subtotal += price * qty;
             });
 
-            let discountAmount = 0;
-            if (discountType === 'novo') discountAmount = subtotal * 0.10;
-            else if (discountType === 'ocasional') discountAmount = subtotal * 0.15;
-            else if (discountType === 'recorrente') discountAmount = subtotal * 0.20;
-            else if (discountType === 'manual_percent') {
-                const pct = parseFloat(discountValueInput.value.replace(',', '.')) || 0;
-                discountAmount = subtotal * (pct / 100);
-            } else if (discountType === 'manual_fixed') {
-                const cleaned = discountValueInput.value.replace(/\./g, '').replace(',', '.');
-                discountAmount = parseFloat(cleaned) || 0;
-            }
-
-            const total = subtotal - discountAmount;
-
             document.getElementById(`subtotal-val-${id}`).innerText = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById(`discount-val-${id}`).innerText = discountAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById(`recalc-total-${id}`).innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById(`recalc-total-${id}`).innerText = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
-        function toggleManualDiscount(id) {
-            const form = document.getElementById(`form-${id}`);
-            const type = form.querySelector('[name="discount_type"]').value;
-            const container = document.getElementById(`manual-discount-container-${id}`);
-            if (type.startsWith('manual')) {
-                container.style.display = 'block';
-            } else {
-                container.style.display = 'none';
-            }
-            recalcTotal(id);
-        }
 
         // MÁSCARA DE MOEDA (R$)
         document.addEventListener('input', function(e) {
@@ -536,8 +468,6 @@
             const priceInputs = form.querySelectorAll('.item-price-input');
             const titleInputs = form.querySelectorAll('input[name*="[title]"]');
             const specInputs = form.querySelectorAll('textarea[name*="[technical_specification]"]');
-            const discountType = form.querySelector('[name="discount_type"]').value;
-            const discountValue = form.querySelector('[name="discount_value"]').value;
 
             const items = [];
             priceInputs.forEach((input, idx) => {
@@ -553,7 +483,7 @@
                 const response = await fetch(`${window.location.origin}/admin/orcamento/${id}/update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ items, discount_type: discountType, discount_value: discountValue })
+                    body: JSON.stringify({ items })
                 });
 
                 if (response.ok) {

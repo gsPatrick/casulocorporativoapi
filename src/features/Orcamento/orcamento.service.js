@@ -12,12 +12,9 @@ class OrcamentoService {
     const { vendedor, parceiro, customerTags: parsedTags } = this.parseBusinessTags(data.customer_tags || []);
     const orderCount = parseInt(data.customer_order_count || 0);
     
-    let { liquidPrice, discountAmount, discountCategory } = this.applyDiscounts(originalPrice, parsedTags, data.discount_code, orderCount);
-    
-    // BUGFIX: Se o frontend já enviou os totais calculados (unit-price discount), priorizamos eles (v4.8.0)
     const finalOriginalPrice = data.original_total_price ? parseFloat(data.original_total_price) : originalPrice;
-    const finalLiquidPrice = data.total_price ? parseFloat(data.total_price) : liquidPrice;
-    const finalDiscountAmount = finalOriginalPrice - finalLiquidPrice;
+    const finalLiquidPrice = data.total_price ? parseFloat(data.total_price) : originalPrice;
+    const finalDiscountAmount = 0;
     
     const shortCode = await this.generateShortCode();
 
@@ -72,8 +69,8 @@ class OrcamentoService {
       line_items_json: finalItems,
       total_price: finalLiquidPrice,
       original_price: finalOriginalPrice,
-      discount_amount: finalDiscountAmount,
-      discount_category: discountCategory,
+      discount_amount: 0,
+      discount_category: null,
       short_code: shortCode,
       vendedor,
       parceiro,
@@ -383,46 +380,6 @@ class OrcamentoService {
     });
 
     return { vendedor, parceiro, customerTags };
-  }
-
-  applyDiscounts(originalPrice, tags, discountCode, orderCount = 0) {
-    let discountPercentage = 0;
-    let discountCategory = null;
-    
-    // 1. Prioridade para Tags de Segmento explícitas
-    if (tags.includes('cliente novo')) {
-      discountPercentage = 10;
-      discountCategory = 'Cliente Novo';
-    } else if (tags.includes('cliente ocasional')) {
-      discountPercentage = 15;
-      discountCategory = 'Cliente Ocasional';
-    } else if (tags.includes('cliente recorrente')) {
-      discountPercentage = 20;
-      discountCategory = 'Cliente Recorrente';
-    } 
-    // 2. Fallback para Regras Automáticas baseadas em Pedidos (v4.6.0)
-    else {
-      if (orderCount === 0) {
-        discountPercentage = 10;
-        discountCategory = 'Cliente Novo';
-      } else if (orderCount >= 1 && orderCount <= 3) {
-        discountPercentage = 15;
-        discountCategory = 'Cliente Ocasional';
-      } else if (orderCount >= 4) {
-        discountPercentage = 20;
-        discountCategory = 'Cliente Recorrente';
-      }
-    }
-
-    const tagDiscount = originalPrice * (discountPercentage / 100);
-    
-    // Cupom de Desconto (Valor fixo ou vindo do payload)
-    const couponDiscount = 0; 
-
-    const totalDiscount = tagDiscount + couponDiscount;
-    const liquidPrice = originalPrice - totalDiscount;
-
-    return { liquidPrice, discountAmount: totalDiscount, discountCategory };
   }
 
   async generateShortCode() {

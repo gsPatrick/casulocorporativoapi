@@ -139,41 +139,13 @@ class AdminController {
         return itemData;
       });
 
-      // 2. Processar Desconto Centralizado
-      let discountAmount = 0;
-      let discountCategory = orcamento.discount_category;
-
-      if (discount_type === 'none') {
-        discountAmount = 0;
-        discountCategory = null;
-      } else if (discount_type === 'novo') {
-        discountAmount = subtotal * 0.10;
-        discountCategory = 'Cliente Novo';
-      } else if (discount_type === 'ocasional') {
-        discountAmount = subtotal * 0.15;
-        discountCategory = 'Cliente Ocasional';
-      } else if (discount_type === 'recorrente') {
-        discountAmount = subtotal * 0.20;
-        discountCategory = 'Cliente Recorrente';
-      } else if (discount_type === 'manual_percent') {
-        const pct = parseFloat(discount_value.replace(',', '.')) || 0;
-        discountAmount = subtotal * (pct / 100);
-        discountCategory = 'Desconto Manual (%)';
-      } else if (discount_type === 'manual_fixed') {
-        const cleanVal = discount_value.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
-        discountAmount = parseFloat(cleanVal) || 0;
-        discountCategory = 'Desconto Manual (R$)';
-      }
-
-      const newTotal = subtotal - discountAmount;
-
-      // 3. Persistir no Banco de Dados
+      // 2. Persistir no Banco de Dados
       await orcamento.update({
         line_items_json: updatedItems,
         original_price: subtotal,
-        discount_amount: discountAmount,
-        discount_category: discountCategory,
-        total_price: newTotal
+        discount_amount: 0,
+        discount_category: null,
+        total_price: subtotal
       });
 
       // 3. Reenviar e-mail se for convidado (Lead) para notificar do novo PDF (v4.2.1)

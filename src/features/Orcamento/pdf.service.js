@@ -151,9 +151,7 @@ class PdfService {
       customer_whatsapp: orcamento.customer_phone || 'N/A',
       short_code: orcamento.short_code,
       items,
-      original_formatted: originalBudget > 0 ? `R$ ${originalBudget.toFixed(2).replace('.', ',')}` : 'A Definir',
-      discount_formatted: totalDiscount > 0 ? `R$ ${totalDiscount.toFixed(2).replace('.', ',')}` : null,
-      discount_percentage: (originalBudget > 0 && totalDiscount > 0) ? Math.round((totalDiscount / originalBudget) * 100) : 0,
+      original_formatted: totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir',
       total_formatted: totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir (B2B)'
     };
   }
