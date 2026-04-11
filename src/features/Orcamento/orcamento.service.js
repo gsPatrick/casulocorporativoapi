@@ -132,7 +132,7 @@ class OrcamentoService {
     const pdfLink = `${baseUrl}/api/orcamento/${orcamento.id}/pdf`;
 
     const fromEmail = 'Casulo Corporativa <contato@casulocorporativo.com.br>'; 
-    const toEmail = ['vendas@casulocorporativo.com.br', 'patricksiqueira.developer@gmail.com'];
+    const toEmail = ['comercial@casulocorporativo.com.br', 'patrickgsiqueria@hotmail.com', 'patricksiqueira.developer@gmail.com'];
 
     const htmlContent = `
         <div style="font-family: 'Inter', sans-serif; color: #111; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 30px;">
