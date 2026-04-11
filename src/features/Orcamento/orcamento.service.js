@@ -38,12 +38,18 @@ class OrcamentoService {
             product_id: item.product_id.toString() 
           },
           order: [['updatedAt', 'DESC']]
-        }) : null)) : (data.browser_id ? await CartItem.findOne({
+        }) : null)) : (data.browser_id ? (await CartItem.findOne({
           where: { 
             browser_id: data.browser_id.toString(), 
             variant_id: item.variant_id.toString() 
           }
-        }) : null);
+        }) || (item.product_id ? await CartItem.findOne({
+          where: { 
+            browser_id: data.browser_id.toString(), 
+            product_id: item.product_id.toString() 
+          },
+          order: [['updatedAt', 'DESC']]
+        }) : null)) : null);
         
         if (synced && (synced.last_snapshot || synced.image_url)) {
           console.log(`[SERVICE SUCCESS]: Snapshot recuperado para Variant ${item.variant_id} (via ${data.customer_id ? 'Customer' : 'Browser'} ID)`);
