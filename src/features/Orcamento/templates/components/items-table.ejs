@@ -11,29 +11,35 @@
     <tbody>
         <% items.forEach((item, index) => { %>
             <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: center; vertical-align: top;">
+                <td style="padding: 10px; border: 1px solid #ddd; text-align: center; vertical-align: middle; background: #ffffff;">
                     <% if (item.custom_image_base64) { %>
-                        <img src="data:image/png;base64,<%= item.custom_image_base64 %>" style="width: 240px; height: auto; border: 1px solid #eee; border-radius: 4px;">
+                        <div style="width: 240px; height: 240px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #ffffff;">
+                            <img src="data:image/png;base64,<%= item.custom_image_base64 %>" style="max-width: 100%; max-height: 100%; object-fit: contain; border: none;">
+                        </div>
                     <% } else { %>
-                        <div style="width: 240px; height: 240px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #999; border-radius: 4px;">Sem imagem</div>
+                        <div style="width: 240px; height: 240px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #ccc;">Sem imagem</div>
                     <% } %>
                 </td>
-                <td style="padding: 10px; border: 1px solid #ddd; vertical-align: top;">
-                    <div style="font-weight: bold; font-size: 13px; margin-bottom: 5px; color: #333;">
+                <td style="padding: 15px; border: 1px solid #ddd; vertical-align: top;">
+                    <div style="font-weight: bold; font-size: 13px; margin-bottom: 8px; color: #000; text-transform: uppercase;">
                         <%= item.title %>
                     </div>
-                    <div style="font-size: 10px; color: #666; line-height: 1.5; text-align: justify;">
-                        <%= item.technical_specification.replace(/\n/g, ', ') %>
-                    </div>
+                    
+                    <ul style="margin: 0; padding-left: 15px; font-size: 10px; color: #555; line-height: 1.4;">
+                        <% (item.technical_specification || '').split('\n').filter(s => s.trim() !== '').forEach(spec => { %>
+                            <li style="margin-bottom: 3px;"><%= spec.trim() %></li>
+                        <% }); %>
+                    </ul>
+
                     <% if (item.additional_info && item.additional_info.trim() !== '') { %>
-                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #eee; font-size: 10px; color: #444;">
-                            <strong style="color: #814620;">Info Adicional:</strong> <br>
+                        <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #eee; font-size: 9px; color: #777;">
+                            <strong style="color: #000; text-transform: uppercase; font-size: 8px;">Observações:</strong> <br>
                             <%- item.additional_info.replace(/\n/g, '<br>') %>
                         </div>
                     <% } %>
                     <% if (item.configuration_url) { %>
-                        <div style="margin-top: 8px;">
-                            <a href="<%= item.configuration_url %>" style="color: #814620; text-decoration: none; font-weight: bold; font-size: 10px; border-bottom: 1px solid #814620;">[Ver Configuração 3D]</a>
+                        <div style="margin-top: 10px;">
+                            <a href="<%= item.configuration_url %>" style="color: #000; text-decoration: underline; font-weight: bold; font-size: 9px; text-transform: uppercase;">[Ver Reconfiguração 3D]</a>
                         </div>
                     <% } %>
                 </td>

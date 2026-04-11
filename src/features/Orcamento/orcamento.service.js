@@ -24,40 +24,34 @@ class OrcamentoService {
     const orcamentoId = require('crypto').randomUUID();
     const CartItem = require('../../models/CartItem');
     const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
-      console.log(`[SERVICE DEBUG]: Item recebido - VariantID: ${item.variant_id}, CID: ${data.customer_id}, BID: ${data.browser_id}`);
+        const vid = item.variant_id?.toString();
+        const pid = item.product_id?.toString();
         
-        // Busca item sincronizado via customer_id OU browser_id
-        const synced = data.customer_id ? (await CartItem.findOne({
-          where: { 
-            shopify_customer_id: data.customer_id.toString(), 
-            variant_id: item.variant_id.toString() 
-          }
-        }) || (item.product_id ? await CartItem.findOne({
-          where: { 
-            shopify_customer_id: data.customer_id.toString(), 
-            product_id: item.product_id.toString() 
-          },
-          order: [['updatedAt', 'DESC']]
-        }) : null)) : (data.browser_id ? (await CartItem.findOne({
-          where: { 
-            browser_id: data.browser_id.toString(), 
-            variant_id: item.variant_id.toString() 
-          }
-        }) || (item.product_id ? await CartItem.findOne({
-          where: { 
-            browser_id: data.browser_id.toString(), 
-            product_id: item.product_id.toString() 
-          },
-          order: [['updatedAt', 'DESC']]
-        }) : null)) : null);
+        console.log(`[SERVICE DEBUG]: Buscando snapshot - Variant: ${vid}, Product: ${pid}, CID: ${data.customer_id}, BID: ${data.browser_id}`);
+        
+        let synced = null;
+        
+        // 1. Tenta por Variant ID (Configuração Exata)
+        if (data.customer_id) {
+          synced = await CartItem.findOne({ where: { shopify_customer_id: data.customer_id.toString(), variant_id: vid } });
+        }
+        if (!synced && data.browser_id) {
+          synced = await CartItem.findOne({ where: { browser_id: data.browser_id.toString(), variant_id: vid } });
+        }
+
+        // 2. Fallback por Product ID (A customização mais recente deste produto para este usuário)
+        if (!synced && pid) {
+          const pidCriteria = data.customer_id ? { shopify_customer_id: data.customer_id.toString(), product_id: pid } : { browser_id: data.browser_id.toString(), product_id: pid };
+          synced = await CartItem.findOne({ where: pidCriteria, order: [['updatedAt', 'DESC']] });
+        }
         
         if (synced && (synced.last_snapshot || synced.image_url)) {
-          console.log(`[SERVICE SUCCESS]: Snapshot recuperado para Variant ${item.variant_id} (via ${data.customer_id ? 'Customer' : 'Browser'} ID)`);
+          console.log(`[SERVICE SUCCESS]: Snapshot recuperado para ${item.title} (Fallback: ${!synced.variant_id.includes(vid)})`);
           return { ...item, custom_image: synced.last_snapshot || synced.image_url };
-        } else {
-          console.log(`[SERVICE INFO]: Nenhum snapshot no banco para Variant ${item.variant_id} ou Product ${item.product_id}`);
         }
-      return item;
+        
+        console.log(`[SERVICE INFO]: Nenhum snapshot encontrado para ${item.title}`);
+        return item;
     }));
 
     const { items: finalItems, base64Map } = this.extractBase64Images(enrichedItems, orcamentoId);
