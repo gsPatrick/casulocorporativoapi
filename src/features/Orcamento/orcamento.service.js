@@ -181,8 +181,8 @@ class OrcamentoService {
         html: htmlContent,
         attachments: pdfBuffer ? [
           {
-            filename: `Proposta-Casulo-${orcamento.id.substring(0, 8).toUpperCase()}.pdf`,
-            content: pdfBuffer,
+            filename: `Proposta_Casulo_${orcamento.id.substring(0, 8).toUpperCase()}.pdf`,
+            content: pdfBuffer.toString('base64'),
           }
         ] : []
       });
