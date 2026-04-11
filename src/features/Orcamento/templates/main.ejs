@@ -71,20 +71,32 @@
                 <% if (customer_name) { %>
                     <%= customer_name %><br>
                 <% } %>
+                <% if (customer_empresa) { %>
+                    Empresa: <%= customer_empresa %><br>
+                <% } %>
                 <% if (customer_email) { %>
                     Email: <%= customer_email %><br>
                 <% } %>
                 <% if (customer_whatsapp) { %>
-                    WhatsApp: <%= customer_whatsapp %>
+                    WhatsApp: <%= customer_whatsapp %><br>
+                <% } %>
+                <% if (customer_cep) { %>
+                    CEP: <%= customer_cep %>
                 <% } %>
             </div>
 
             <!-- PROPOSAL DATA -->
-            <div class="info-card" style="max-width: 200px;">
+            <div class="info-card" style="max-width: 250px;">
                 <strong>Dados da Proposta:</strong>
                 Número: <%= short_code || id.substring(0, 8).toUpperCase() %><br>
                 Data: <%= date %><br>
-                Validade: 15 dias
+                Validade: 15 dias<br>
+                <% if (vendedor) { %>
+                    Consultor: <%= vendedor %><br>
+                <% } %>
+                <% if (tags && tags.length > 0) { %>
+                    Tags: <%= tags.join(', ') %>
+                <% } %>
             </div>
         </div>
 
