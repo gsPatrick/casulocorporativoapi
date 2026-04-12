@@ -76,52 +76,44 @@ class PdfService {
       logoBase64 = fs.readFileSync(logoPath).toString('base64');
     }
 
+    // Determinar se o usuário pode ver preços baseados nas tags (v4.5.0)
+    const tags = orcamento.customer_tags || [];
+    const lowerTags = tags.map(t => t.toLowerCase());
+    const canSeePrices = lowerTags.includes('aprovado') || 
+                         lowerTags.includes('cadastrado') || 
+                         lowerTags.includes('acesso-temporario') ||
+                         lowerTags.includes('acesso_temporario');
+
     // Processar cada item do orçamento
     for (const item of orcamento.line_items_json) {
       let imageBase64 = null;
 
-      // Se houver snapshot (URL ou Base64 direto)
+      // ... existing image processing logic ...
       if (item.custom_image && item.custom_image.startsWith('data:image')) {
-        // 1. Base64 direto (Pixel-Perfect)
         imageBase64 = item.custom_image.split(',')[1] || item.custom_image;
       } 
       else if (item.custom_image) {
-        // 2. BUSCA ROBUSTA NO DISCO (v4.3.0)
-        // Se a URL contiver o padrão de snapshot da nossa API, tentamos ler direto do disco
         const snapshotMatch = item.custom_image.match(/images\/([\w-]+)\/(\d+)/);
-        
         if (snapshotMatch) {
           try {
             const id = snapshotMatch[1];
             const index = snapshotMatch[2];
             const filename = `snapshot-${id}-${index}.png`;
             const filePath = path.join(__dirname, '../../temp/images', filename);
-            
             if (fs.existsSync(filePath)) {
-              console.log(`[PDF SERVICE]: Snapshot encontrado no disco: ${filename}`);
               imageBase64 = fs.readFileSync(filePath).toString('base64');
             }
-          } catch (err) {
-            console.warn(`[PDF SERVICE]: Erro na leitura física do snapshot:`, err.message);
-          }
+          } catch (err) {}
         }
-
-        // 3. FALLBACK: Download de Rede (Se não achou no disco ou é uma URL externa)
         if (!imageBase64 && item.custom_image.startsWith('http')) {
           try {
-            console.log(`[PDF SERVICE]: Baixando imagem via rede: ${item.custom_image}`);
-            const imgRes = await axios.get(item.custom_image, { 
-              responseType: 'arraybuffer', 
-              timeout: 15000 
-            });
+            const imgRes = await axios.get(item.custom_image, { responseType: 'arraybuffer', timeout: 15000 });
             imageBase64 = Buffer.from(imgRes.data, 'binary').toString('base64');
-          } catch (err) {
-            console.warn(`[PDF SERVICE]: Falha no download da imagem para ${item.title}:`, err.message);
-          }
+          } catch (err) {}
         }
       }
 
-      // Garantir que o preço seja tratado como número, removendo caracteres não numéricos se necessário
+      // Garantir que o preço seja tratado como número
       let rawPrice = item.price;
       if (typeof rawPrice === 'string') {
         rawPrice = rawPrice.replace(/[^\d.,]/g, '').replace(',', '.');
@@ -130,33 +122,36 @@ class PdfService {
       const unitPrice = parseFloat(rawPrice || 0);
       const totalItem = unitPrice * (item.quantity || 1);
 
+      // Regra de Ouro: Se não pode ver preços, mostramos 'Sob Consulta'
+      const unitFormatted = canSeePrices && unitPrice > 0 ? `R$ ${unitPrice.toFixed(2).replace('.', ',')}` : 'Sob Consulta';
+      const totalFormatted = canSeePrices && totalItem > 0 ? `R$ ${totalItem.toFixed(2).replace('.', ',')}` : 'Sob Consulta';
+
       items.push({
         ...item,
         custom_image_base64: imageBase64,
-        unit_price_formatted: unitPrice > 0 ? `R$ ${unitPrice.toFixed(2).replace('.', ',')}` : 'Sob Consulta',
-        total_price_formatted: totalItem > 0 ? `R$ ${totalItem.toFixed(2).replace('.', ',')}` : 'Sob Consulta'
+        unit_price_formatted: unitFormatted,
+        total_price_formatted: totalFormatted
       });
     }
 
     const totalBudget = parseFloat(orcamento.total_price || 0);
-    const originalBudget = parseFloat(orcamento.original_price || orcamento.total_price || 0);
-    const totalDiscount = parseFloat(orcamento.discount_amount || 0);
 
     return {
       id: orcamento.id,
       date: new Date(orcamento.createdAt).toLocaleDateString('pt-BR'),
       logoBase64,
-      customer_name: orcamento.customer_name || 'Cliente',
-      customer_email: orcamento.customer_email || 'N/A',
-      customer_whatsapp: orcamento.customer_phone || 'N/A',
-      customer_empresa: orcamento.lead_json?.empresa || '',
-      customer_cep: orcamento.lead_json?.cep || '',
+      // Sincronização Real dos Dados do Painel/Lead
+      customer_name: lead.nome ? `${lead.nome} ${lead.sobrenome || ''}`.trim() : (orcamento.customer_name || 'Cliente'),
+      customer_email: lead.email || orcamento.customer_email || 'N/A',
+      customer_whatsapp: lead.whatsapp || orcamento.customer_phone || 'N/A',
+      customer_empresa: lead.empresa || orcamento.lead_json?.empresa || '',
+      customer_cep: lead.cep || orcamento.lead_json?.cep || '',
       vendedor: orcamento.vendedor || '',
-      tags: orcamento.customer_tags || [],
+      tags: tags,
+      can_see_prices: canSeePrices,
       short_code: orcamento.short_code,
       items,
-      original_formatted: totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir',
-      total_formatted: totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir (B2B)'
+      total_formatted: canSeePrices && totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir (Sob Consulta)'
     };
   }
 }
