@@ -76,13 +76,16 @@ class PdfService {
       logoBase64 = fs.readFileSync(logoPath).toString('base64');
     }
 
-    // Determinar se o usuário pode ver preços baseados nas tags (v4.5.0)
-    const tags = orcamento.customer_tags || [];
-    const lowerTags = tags.map(t => t.toLowerCase());
-    const canSeePrices = lowerTags.includes('aprovado') || 
-                         lowerTags.includes('cadastrado') || 
-                         lowerTags.includes('acesso-temporario') ||
-                         lowerTags.includes('acesso_temporario');
+    // Determinar se o usuário pode ver preços baseados nas tags (v4.6.0 - Robust Check)
+    const tagsRaw = orcamento.customer_tags || [];
+    const tagsText = Array.isArray(tagsRaw) ? tagsRaw.join('|') : String(tagsRaw);
+    const tagsLower = tagsText.toLowerCase();
+    
+    // Busca por termos exatos ou parciais nas tags
+    const canSeePrices = tagsLower.includes('aprovado') || 
+                         tagsLower.includes('cadastrado') || 
+                         tagsLower.includes('acesso-temporario') ||
+                         tagsLower.includes('acesso_temporario');
 
     // Processar cada item do orçamento
     for (const item of orcamento.line_items_json) {
@@ -147,7 +150,7 @@ class PdfService {
       customer_empresa: lead.empresa || orcamento.lead_json?.empresa || '',
       customer_cep: lead.cep || orcamento.lead_json?.cep || '',
       vendedor: orcamento.vendedor || '',
-      tags: tags,
+      tags: tagsRaw,
       can_see_prices: canSeePrices,
       short_code: orcamento.short_code,
       items,
