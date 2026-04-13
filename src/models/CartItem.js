@@ -37,6 +37,11 @@ const CartItem = sequelize.define('CartItem', {
   last_snapshot: {
     type: DataTypes.TEXT,
     allowNull: true,
+  },
+  product_type: {
+    type: DataTypes.ENUM('loja', 'orcamento'),
+    allowNull: true,
+    defaultValue: 'orcamento'
   }
 }, {
   timestamps: true,

@@ -198,8 +198,9 @@ class OrcamentoController {
     const angle3d_id = req.body.angle3d_id; // Novo
     const product_id = req.body.product_id;
     const { image, technical_specification } = req.body;
+    const product_type = req.body.product_type || 'orcamento'; // Novo: loja ou orcamento
 
-    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Browser ID: ${browser_id}, Variant ID: ${variant_id}${angle3d_id ? ', Angle3D ID: ' + angle3d_id : ''}`);
+    console.log(`[SYNC DEBUG]: Customer ID: ${customer_id}, Browser ID: ${browser_id}, Variant ID: ${variant_id}${angle3d_id ? ', Angle3D ID: ' + angle3d_id : ''}, Type: ${product_type}`);
 
     if ((!customer_id && !browser_id) || (!variant_id && !angle3d_id)) {
       console.warn('[SYNC WARNING]: identificação ou variante ausentes!');
@@ -245,7 +246,8 @@ class OrcamentoController {
             product_id: product_id ? product_id.toString() : null,
             technical_specification,
             image_url: imageUrl,
-            last_snapshot: image
+            last_snapshot: image,
+            product_type: product_type
           }
         });
 
@@ -254,16 +256,69 @@ class OrcamentoController {
             product_id: product_id ? product_id.toString() : item.product_id,
             technical_specification,
             image_url: imageUrl,
-            last_snapshot: image
+            last_snapshot: image,
+            product_type: product_type
           });
         }
       }
 
-      console.log(`[${new Date().toISOString()}] <<< [SYNC SUCCESS]: Item ${variant_id} (e possible bundle) sincronizado.`);
+      console.log(`[${new Date().toISOString()}] <<< [SYNC SUCCESS]: Item ${variant_id} (${product_type}) sincronizado.`);
       res.json({ success: true, image_url: imageUrl });
     } catch (error) {
       console.error('[SYNC ERROR]:', error.message);
       res.status(500).json({ error: 'Erro ao sincronizar item' });
+    }
+  }
+
+  /**
+   * Valida se um novo item é compatível com o carrinho virtual atual (v4.3.0)
+   */
+  async validateAddition(req, res) {
+    console.log(`\n[${new Date().toISOString()}] >>> [VALIDATE REQ]: Verificando compatibilidade de carrinho...`);
+    
+    const customer_id = req.body.customer_id || req.query.logged_in_customer_id;
+    const browser_id = req.body.browser_id;
+    const new_type = req.body.product_type; // 'loja' ou 'orcamento'
+
+    if ((!customer_id && !browser_id) || !new_type) {
+      return res.status(400).json({ error: 'Identificação e tipo do produto são obrigatórios' });
+    }
+
+    try {
+      const CartItem = require('../../models/CartItem');
+      const { Op } = require('sequelize');
+
+      // Buscar todos os itens no carrinho do usuário
+      const items = await CartItem.findAll({
+        where: {
+          [Op.or]: [
+            { shopify_customer_id: customer_id ? customer_id.toString() : '___null___' },
+            { browser_id: browser_id ? browser_id.toString() : '___null___' }
+          ]
+        }
+      });
+
+      if (items.length === 0) {
+        return res.json({ valid: true, message: 'Carrinho vazio' });
+      }
+
+      // Verificar se existe algum item com tipo diferente
+      const conflictingItem = items.find(item => item.product_type !== new_type);
+
+      if (conflictingItem) {
+        console.warn(`[VALIDATE]: Bloqueio detectado! Tentativa de adicionar ${new_type} em carrinho com ${conflictingItem.product_type}`);
+        return res.json({ 
+          valid: false, 
+          message: conflictingItem.product_type === 'loja' ? 
+            'Seu carrinho já possui produtos de Loja. Finalize a compra ou remova os itens para solicitar orçamentos.' : 
+            'Seu carrinho já possui solicitações de orçamento. Finalize o pedido ou remova os itens para comprar produtos de Loja.'
+        });
+      }
+
+      res.json({ valid: true });
+    } catch (error) {
+      console.error('[VALIDATE ERROR]:', error.message);
+      res.status(500).json({ valid: false, error: 'Erro ao validar compatibilidade do carrinho' });
     }
   }
   /**
@@ -349,6 +404,38 @@ class OrcamentoController {
     } catch (error) {
       console.error('[ORCAMENTO CONTROLLER]: Erro ao verificar snapshots:', error.message);
       res.status(500).send('Erro interno ao verificar snapshots');
+    }
+  }
+  /**
+   * Limpa o carrinho virtual de um usuário (v4.3.0)
+   */
+  async clearCart(req, res) {
+    console.log(`\n[${new Date().toISOString()}] >>> [CLEAR REQ]: Limpando carrinho virtual...`);
+    
+    const customer_id = req.body.customer_id || req.query.logged_in_customer_id;
+    const browser_id = req.body.browser_id;
+
+    if (!customer_id && !browser_id) {
+      return res.status(400).json({ error: 'Identificação do usuário é obrigatória' });
+    }
+
+    try {
+      const CartItem = require('../../models/CartItem');
+      const { Op } = require('sequelize');
+
+      await CartItem.destroy({
+        where: {
+          [Op.or]: [
+            { shopify_customer_id: customer_id ? customer_id.toString() : '___null___' },
+            { browser_id: browser_id ? browser_id.toString() : '___null___' }
+          ]
+        }
+      });
+
+      res.json({ success: true, message: 'Carrinho virtual limpo' });
+    } catch (error) {
+      console.error('[CLEAR ERROR]:', error.message);
+      res.status(500).json({ error: 'Erro ao limpar carrinho virtual' });
     }
   }
 }

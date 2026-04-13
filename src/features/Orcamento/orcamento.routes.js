@@ -31,6 +31,8 @@ router.get('/go/:codigo', orcamentoController.redirectToConfig.bind(orcamentoCon
 router.use(validateShopifyProxy);
 
 router.post('/sync-item', orcamentoController.syncItem);
+router.post('/validate-addition', orcamentoController.validateAddition);
+router.post('/clear-cart', orcamentoController.clearCart);
 router.post('/check-snapshots', orcamentoController.checkSnapshots);
 
 
