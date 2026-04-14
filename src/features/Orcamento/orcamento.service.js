@@ -256,8 +256,12 @@ class OrcamentoService {
   }
 
   async getOrcamentosByCustomer(customerId) {
+    const { Op } = require('sequelize');
     return await Orcamento.findAll({
-      where: { shopify_customer_id: customerId },
+      where: { 
+        shopify_customer_id: customerId,
+        status: { [Op.in]: ['aprovado', 'finalizado'] }
+      },
       order: [['createdAt', 'DESC']]
     });
   }
