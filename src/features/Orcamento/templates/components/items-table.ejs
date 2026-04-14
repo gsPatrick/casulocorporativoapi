@@ -24,7 +24,8 @@
                 <% } %>
             </div>
 
-            <div style="display: flex; align-items: flex-start; gap: 15px;">
+            <div style="display: flex; align-items: stretch; gap: 15px;">
+                <!-- IMAGE -->
                 <div style="flex: 0 0 95px; width: 95px; height: 95px; border: 1px solid #f9f9f9; display: flex; align-items: center; justify-content: center;">
                     <% if (item.custom_image_base64) { %>
                         <img src="data:image/png;base64,<%= item.custom_image_base64 %>" style="max-width: 95%; max-height: 95%; width: auto; height: auto; display: block; object-fit: contain;">
@@ -33,19 +34,33 @@
                     <% } %>
                 </div>
 
-                <div style="flex: 1;">
-                    <div style="font-size: 9px; line-height: 1.2; margin-bottom: 3px;">
+                <!-- INFO (WIDER NOW) -->
+                <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div style="font-size: 9px; line-height: 1.25; color: #333;">
                         <% if (item.technical_specification) { %>
-                            <% item.technical_specification.split('\n').filter(line => line.trim()).forEach(line => { %>
-                                <div style="margin-bottom: 1px;">• <%= line.trim() %></div>
-                            <% }); %>
+                            <div style="margin-bottom: 4px;">
+                                <% item.technical_specification.split('\n').filter(line => line.trim()).forEach(line => { %>
+                                    <div style="margin-bottom: 1px;">• <%= line.trim() %></div>
+                                <% }); %>
+                            </div>
+                        <% } %>
+
+                        <% if (item.especificacao_generica) { %>
+                            <div style="font-style: italic; color: #666; font-size: 8.5px; border-top: 1px solid #fcfcfc; padding-top: 2px; margin-top: 4px;">
+                                <%= item.especificacao_generica %>
+                            </div>
                         <% } %>
                     </div>
 
-                    <div style="border-top: 1px dashed #f5f5f5; padding-top: 2px; display: flex; align-items: baseline; gap: 10px;">
-                        <div style="font-size: 8px;">Qtd: <strong><%= item.quantity %></strong></div>
-                        <div style="font-size: 8px; color: #666;">Un: <%= item.unit_price_formatted %></div>
-                        <div style="font-size: 10px; font-weight: bold; margin-left: auto;">Total: <%= item.total_price_formatted %></div>
+                    <!-- FINANCIALS (Fill the right space better) -->
+                    <div style="border-top: 1px dashed #eee; padding-top: 4px; display: flex; align-items: baseline; justify-content: space-between;">
+                        <div style="display: flex; gap: 15px;">
+                            <span style="font-size: 8px;">Qtd: <strong><%= item.quantity %></strong></span>
+                            <span style="font-size: 8px; color: #666;">Unitário: <%= item.unit_price_formatted %></span>
+                        </div>
+                        <div style="font-size: 11px; font-weight: bold; color: #000;">
+                            SUBTOTAL: <%= item.total_price_formatted %>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -54,5 +69,5 @@
 </div>
 
 <div style="margin-top: 5px; border-top: 2px solid #000; padding-top: 3px; text-align: right;">
-    <div style="font-size: 14px; font-weight: bold;">TOTAL GERAL: <%= total_formatted %></div>
+    <div style="font-size: 14px; font-weight: bold;">VALOR TOTAL DA PROPOSTA: <%= total_formatted %></div>
 </div>
