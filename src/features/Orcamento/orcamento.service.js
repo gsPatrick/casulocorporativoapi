@@ -84,14 +84,6 @@ class OrcamentoService {
       console.error(`[${new Date().toISOString()}] [SERVICE ERROR]:`, err.message);
     });
 
-    // 2.1. Sincronização de Cadastro B2B (Tags e Metafields) - v4.5.1
-    if (data.lead && data.lead.registration_type === 'b2b_completion' && data.customer_id) {
-       console.log(`[SERVICE B2B]: Detectado conclusão de cadastro B2B para cliente ${data.customer_id}`);
-       this.syncB2BCustomerData(data.customer_id, data.lead).catch(err => {
-          console.error('[SERVICE B2B ERROR]: Falha na sincronização B2B:', err.message);
-       });
-    }
-
     // 3. Limpeza do Carrinho Virtual (v3.9.0)
     if (data.customer_id) {
       console.log(`[SERVICE]: Limpando itens sincronizados para o cliente ${data.customer_id}`);
@@ -429,11 +421,11 @@ class OrcamentoService {
 
   async syncB2BCustomerData(customerId, leadData) {
     const axios = require('axios');
-    const shop = process.env.SHOPIFY_SHOP || 'casulo-corporativa.myshopify.com';
-    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN || process.env.SHOPIFY_API_SECRET;
+    const shop = process.env.SHOPIFY_HOST_NAME || 'casulo-corporativa.myshopify.com';
+    const accessToken = process.env.SHOPIFY_API_SECRET;
 
     if (!accessToken) {
-       console.error('[SERVICE B2B]: Access Token não encontrado para sincronização.');
+       console.error('[SERVICE B2B]: SHOPIFY_API_SECRET não encontrado no .env.');
        return;
     }
 

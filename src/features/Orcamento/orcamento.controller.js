@@ -15,6 +15,13 @@ class OrcamentoController {
         console.log(`[CONTROLLER INFO]: Usando customer_id da query: ${req.body.customer_id}`);
       }
 
+      // Se for apenas uma conclusão de cadastro B2B, processamos e retornamos sem criar orçamento no DB
+      if (req.body.lead && req.body.lead.registration_type === 'b2b_completion') {
+        console.log(`[${new Date().toISOString()}] [CONTROLLER]: Processando apenas CADASTRO B2B...`);
+        await orcamentoService.syncB2BCustomerData(req.body.customer_id, req.body.lead);
+        return res.status(200).json({ success: true, message: 'Cadastro B2B concluído com sucesso' });
+      }
+
       const orcamento = await orcamentoService.createOrcamento(req.body);
       
       const dbTime = Date.now();
