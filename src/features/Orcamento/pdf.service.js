@@ -89,7 +89,7 @@ class PdfService {
 
     // Processar cada item do orçamento
     for (const item of orcamento.line_items_json) {
-      let imageBase64 = null;
+      let imageBase64 = item.custom_image_base64 || null; // Suporte para mock direto
 
       // ... existing image processing logic ...
       if (item.custom_image && item.custom_image.startsWith('data:image')) {
