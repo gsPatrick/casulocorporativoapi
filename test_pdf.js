@@ -9,7 +9,7 @@ async function test() {
   
   // Aplica o crop na imagem de teste para o PDF de saída
   const croppedImageBuffer = await sharp(imageBuffer).trim().toBuffer();
-  const base64Image = `data:image/png;base64,${croppedImageBuffer.toString('base64')}`;
+  const base64Image = croppedImageBuffer.toString('base64'); // RAW base64 for the template
 
   const mockOrcamento = {
     id: 'test-12345678',
@@ -23,46 +23,24 @@ async function test() {
     line_items_json: [
       {
         title: "CADEIRA CASALIA EM METAL COM BRAÇOS",
-        quantity: 2,
-        unit_price_formatted: "R$ 1208,71",
-        total_price_formatted: "R$ 2417,42",
-        technical_specification: "Assento e encosto estofados\nEstrutura metálica com acabamento em pintura epóxi\nTipo de Revestimento: TECIDO B\nCor: HOPSCOTCH B&W",
-        especificacao_generica: "Produto certificado NR-17 conforme normas de ergonomia vigentes.",
+        quantity: 12,
+        unit_price_formatted: "R$ 1.208,71",
+        total_price_formatted: "R$ 14.504,52",
+        technical_specification: "Dimensões: 610 x 540 x 760 mm\nCódigo: CACAD2505\nOrigem: Nacional\nTipo de Revestimento: TECIDO B (Lona Reforçada)\nCor do Revestimento: B190 - HOPSCOTCH B&W (Padrão Corporativo)\nTipo de Acabamento da Base: PINTURA EPÓXI PADRÃO (Resistência Industrial)\nCor da Base: PRETO FOSCO (PRETO S.BRL)\nEncosto: Espuma Injetada com Memória\nBraços: Regulagem de Altura 3D",
+        especificacao_generica: "Este produto atende integralmente todos os requisitos de durabilidade e ergonomia exigidos para ambientes corporativos de alto tráfego. Possui certificação de conformidade com as normas NR-17 de ergonomia e segurança no trabalho, garantindo o conforto do usuário por longos períodos de utilização. A garantia estrutural é estendida para 5 anos devido ao tratamento anticorrosivo da base metálica.",
         category: "COPA",
         legend_id: "M1",
         custom_image_base64: base64Image
       },
       {
         title: "POLTRONA NOVOLI",
-        quantity: 1,
-        unit_price_formatted: "R$ 2656,79",
-        total_price_formatted: "R$ 2656,79",
-        technical_specification: "Estrutura metálica com acabamento em pintura epóxi\nTipo de Revestimento: TECIDO B\nCor: BRANCO MICROTEXTURA FOSCO",
-        especificacao_generica: "Garantia de 5 anos contra defeitos de fabricação na estrutura.",
+        quantity: 5,
+        unit_price_formatted: "R$ 2.656,79",
+        total_price_formatted: "R$ 13.283,95",
+        technical_specification: "Dimensões: 750 x 750 x 750 mm\nCódigo: NOPOL2213\nOrigem: Nacional\nDesign: Assento, encosto e braços estofados. Estrutura metálica com acabamento em pintura epóxi. Revestimentos do assento / encosto/ braços e cores da estrutura metálica de acordo com as cores padronizadas (vide catálogo de cores)",
+        especificacao_generica: "A poltrona Novoli é um ícone de design que une sofisticação e conforto. Ideal para áreas de recepção e lounges executivos. A estrutura é reforçada para suportar até 150kg sem sofrer deformações. Os tecidos são tratados com tecnologia anti-mancha e proteção UV, mantendo a vivacidade das cores por muito mais tempo mesmo em ambientes com incidência solar direta.",
         category: "COPA",
         legend_id: "M2",
-        custom_image_base64: base64Image
-      },
-      {
-        title: "MESA DE REUNIÃO NEO",
-        quantity: 1,
-        unit_price_formatted: "R$ 4500,00",
-        total_price_formatted: "R$ 4500,00",
-        technical_specification: "Tampo em MDF 25mm\nEstrutura em aço com calhas para fiação\nAcabamento: Carvalho Natural",
-        especificacao_generica: "Possui calha articulada central para tomadas e dados.",
-        category: "SALA REUNIÃO",
-        legend_id: "M3",
-        custom_image_base64: base64Image
-      },
-      {
-        title: "CADEIRA C4 ERGONÔMICA",
-        quantity: 4,
-        unit_price_formatted: "R$ 1850,00",
-        total_price_formatted: "R$ 7400,00",
-        technical_specification: "Mecanismo syncron\nBraços 3D reguláveis\nBase em nylon reforçado",
-        especificacao_generica: "Certificação ABNT NBR 13962.",
-        category: "SALA REUNIÃO",
-        legend_id: "M4",
         custom_image_base64: base64Image
       }
     ],
