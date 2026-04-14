@@ -327,6 +327,12 @@
                                         </div>
                                     <% }); %>
 
+                                    <div style="margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #000; border-style: dashed;">
+                                        <label class="label-premium" style="color: #000;">Termos do Contrato / Observações Adicionais (PDF)</label>
+                                        <textarea name="termos_contrato" id="termos-<%= orc.id %>" class="input-premium" rows="6" placeholder="Ex: Prazo de entrega de 30 dias úteis..." style="resize: vertical; margin-top: 8px;"><%= orc.termos_contrato || '' %></textarea>
+                                        <div style="font-size: 10px; color: #999; margin-top: 5px;">Este texto aparecerá ao final da proposta PDF gerada para o cliente.</div>
+                                    </div>
+
                                     <div class="summary-box" style="text-align: left; background: #fafafa; border: 1px solid #ddd;">
                                             <div style="text-align: right; border-left: 1px solid #eee; padding-left: 20px;">
                                                 <div style="font-size: 11px; color: #666; margin-bottom: 5px;">
@@ -391,7 +397,7 @@
             document.getElementById('search-input').value = '';
             document.getElementById('filter-status').value = 'all';
             document.getElementById('filter-customer').value = 'all';
-            document.getElementById('filter-category').value = 'all';
+            // document.getElementById('filter-category').value = 'all';
             applyFilters();
         }
 
@@ -406,7 +412,6 @@
                 const searchData = row.getAttribute('data-search');
                 const rowStatus = row.getAttribute('data-status');
                 const rowCustomer = row.getAttribute('data-customer');
-                const rowCategory = row.getAttribute('data-category');
 
                 const matchesSearch = searchData.includes(searchText);
                 const matchesStatus = filterStatus === 'all' || rowStatus === filterStatus;
@@ -468,6 +473,7 @@
             const priceInputs = form.querySelectorAll('.item-price-input');
             const titleInputs = form.querySelectorAll('input[name*="[title]"]');
             const specInputs = form.querySelectorAll('textarea[name*="[technical_specification]"]');
+            const termosInput = document.getElementById(`termos-${id}`);
 
             const items = [];
             priceInputs.forEach((input, idx) => {
@@ -483,7 +489,7 @@
                 const response = await fetch(`${window.location.origin}/admin/orcamento/${id}/update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ items })
+                    body: JSON.stringify({ items, termos_contrato: termosInput.value })
                 });
 
                 if (response.ok) {

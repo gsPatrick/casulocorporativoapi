@@ -77,6 +77,10 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  termos_contrato: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
 }, {
   timestamps: true,
   tableName: 'orcamentos',

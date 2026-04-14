@@ -145,7 +145,8 @@ class AdminController {
         original_price: subtotal,
         discount_amount: 0,
         discount_category: null,
-        total_price: subtotal
+        total_price: subtotal,
+        termos_contrato: req.body.termos_contrato // v4.11.0
       });
 
       // 3. Reenviar e-mail se for convidado (Lead) para notificar do novo PDF (v4.2.1)
@@ -154,7 +155,7 @@ class AdminController {
         await orcService.sendCommercialNotification(orcamento);
       }
 
-      res.json({ success: true, total: newTotal });
+      res.json({ success: true, total: subtotal });
     } catch (error) {
       console.error('[ADMIN CONTROLLER]: Erro ao atualizar orçamento:', error.message);
       res.status(500).json({ error: 'Erro ao salvar alterações' });

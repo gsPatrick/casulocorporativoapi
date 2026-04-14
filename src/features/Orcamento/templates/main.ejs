@@ -103,6 +103,13 @@
                 • Esta proposta está sujeita a análise de crédito.<br>
                 • Casulo Indústria e Comércio de Móveis Ltda - Rua Acadêmico Reinaldo Consoni, 681 - Florianópolis, SC.
             </div>
+
+            <% if (termos_contrato) { %>
+                <div style="margin-top: 15px; font-size: 10px; color: #000; border-top: 1px dashed #ddd; padding-top: 10px; line-height: 1.5; white-space: pre-wrap;">
+                    <strong style="display: block; margin-bottom: 5px; text-transform: uppercase;">Termos e Observações do Contrato:</strong>
+                    <%= termos_contrato %>
+                </div>
+            <% } %>
         </div>
     </div>
 </body>

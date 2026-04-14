@@ -45,7 +45,8 @@ async function test() {
       }
     ],
     customer_tags: ['Aprovado'],
-    total_price: '15767.42'
+    total_price: '15767.42',
+    termos_contrato: "• O prazo de entrega estimado é de 30 a 45 dias úteis.\n• Pagamento: 50% de entrada e o restante em 3x no boleto.\n• Montagem inclusa para Grande Florianópolis."
   };
 
   console.log('Iniciando teste de PDF...');

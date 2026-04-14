@@ -154,6 +154,7 @@ class PdfService {
       can_see_prices: canSeePrices,
       short_code: orcamento.short_code,
       items,
+      termos_contrato: orcamento.termos_contrato || '',
       total_formatted: canSeePrices && totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir (Sob Consulta)'
     };
   }
