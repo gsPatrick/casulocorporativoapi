@@ -84,6 +84,14 @@ class OrcamentoService {
       console.error(`[${new Date().toISOString()}] [SERVICE ERROR]:`, err.message);
     });
 
+    // 2.1. Sincronização de Cadastro B2B (Tags e Metafields) - v4.5.1
+    if (data.lead && data.lead.registration_type === 'b2b_completion' && data.customer_id) {
+       console.log(`[SERVICE B2B]: Detectado conclusão de cadastro B2B para cliente ${data.customer_id}`);
+       this.syncB2BCustomerData(data.customer_id, data.lead).catch(err => {
+          console.error('[SERVICE B2B ERROR]: Falha na sincronização B2B:', err.message);
+       });
+    }
+
     // 3. Limpeza do Carrinho Virtual (v3.9.0)
     if (data.customer_id) {
       console.log(`[SERVICE]: Limpando itens sincronizados para o cliente ${data.customer_id}`);
@@ -417,6 +425,89 @@ class OrcamentoService {
     });
 
     return { vendedor, parceiro, customerTags };
+  }
+
+  async syncB2BCustomerData(customerId, leadData) {
+    const axios = require('axios');
+    const shop = process.env.SHOPIFY_SHOP || 'casulo-corporativa.myshopify.com';
+    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN || process.env.SHOPIFY_API_SECRET;
+
+    if (!accessToken) {
+       console.error('[SERVICE B2B]: Access Token não encontrado para sincronização.');
+       return;
+    }
+
+    const gid = customerId.toString().startsWith('gid://') ? customerId : `gid://shopify/Customer/${customerId}`;
+    
+    // 1. ATUALIZAR TAGS (GraphQL)
+    // Remove acesso_temporario e adiciona acesso-restrito
+    const queryTags = `
+      mutation customerUpdate($input: CustomerInput!) {
+        customerUpdate(input: $input) {
+          customer { id tags }
+          userErrors { field message }
+        }
+      }
+    `;
+
+    try {
+      // Primeiro buscamos as tags atuais para fazer o swap limpo
+      const getTagsQuery = `query { customer(id: "${gid}") { tags } }`;
+      const resTags = await axios({
+        url: `https://${shop}/admin/api/2024-01/graphql.json`,
+        method: 'POST',
+        headers: { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' },
+        data: { query: getTagsQuery }
+      });
+
+      const currentTags = resTags.data.data.customer?.tags || [];
+      const newTags = currentTags
+        .filter(t => t.toLowerCase() !== 'acesso_temporario')
+        .concat(['acesso-restrito']);
+
+      await axios({
+        url: `https://${shop}/admin/api/2024-01/graphql.json`,
+        method: 'POST',
+        headers: { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' },
+        data: {
+          query: queryTags,
+          variables: { input: { id: gid, tags: newTags } }
+        }
+      });
+      console.log(`[SERVICE B2B]: Tags atualizadas para o cliente ${customerId}`);
+
+      // 2. ATUALIZAR METAFIELDS (GraphQL)
+      const queryMetafields = `
+        mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields { id key value }
+            userErrors { field message }
+          }
+        }
+      `;
+
+      const metafields = [
+        { ownerId: gid, namespace: 'custom', key: 'cnpj', value: leadData.cnpj || '', type: 'single_line_text_field' },
+        { ownerId: gid, namespace: 'custom', key: 'cep', value: leadData.cep || '', type: 'single_line_text_field' },
+        { ownerId: gid, namespace: 'custom', key: 'endereco', value: leadData.endereco || '', type: 'single_line_text_field' },
+        { ownerId: gid, namespace: 'custom', key: 'empresa', value: leadData.empresa || '', type: 'single_line_text_field' }
+      ].filter(m => m.value !== '');
+
+      if (metafields.length > 0) {
+        await axios({
+          url: `https://${shop}/admin/api/2024-01/graphql.json`,
+          method: 'POST',
+          headers: { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' },
+          data: {
+            query: queryMetafields,
+            variables: { metafields }
+          }
+        });
+        console.log(`[SERVICE B2B]: Metafields sincronizados para o cliente ${customerId}`);
+      }
+    } catch (err) {
+      console.error('[SERVICE B2B INFO]: Erro na comunicação com a Shopify:', err.response?.data || err.message);
+    }
   }
 
   async generateShortCode() {
