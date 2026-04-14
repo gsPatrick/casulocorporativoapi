@@ -422,10 +422,11 @@ class OrcamentoService {
   async syncB2BCustomerData(customerId, leadData) {
     const axios = require('axios');
     const shop = process.env.SHOPIFY_HOST_NAME || 'casulo-corporativa.myshopify.com';
-    const accessToken = process.env.SHOPIFY_API_SECRET;
+    // O token correto para chamadas Admin deve ser o shpat_...
+    const accessToken = process.env.SHOPIFY_API_SECRET; 
 
-    if (!accessToken) {
-       console.error('[SERVICE B2B]: SHOPIFY_API_SECRET não encontrado no .env.');
+    if (!accessToken || !accessToken.startsWith('shpat_')) {
+       console.error('[SERVICE B2B ERROR]: Token inválido. Certifique-se de usar o Admin API Access Token (shpat_...) no .env.');
        return;
     }
 
