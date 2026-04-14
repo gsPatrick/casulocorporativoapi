@@ -33,31 +33,40 @@
                     <% } %>
                 </div>
 
-                <!-- DESCRIÇÃO COM BULLETS (PREENCHENDO O ESPAÇO) -->
+                <!-- CONTEÚDO PRINCIPAL (SPECS + FINANCE LATERAL) -->
                 <div style="flex: 1;">
-                    <div style="font-size: 9.5px; line-height: 1.4; color: #333; margin-bottom: 8px;">
-                        <% if (item.technical_specification) { 
-                            const specs = item.technical_specification.split('\n').filter(line => line.trim());
-                            specs.forEach(spec => {
-                        %>
-                            <div style="margin-bottom: 2px;">• <%= spec.trim() %></div>
-                        <% }); } %>
-
-                        <% if (item.especificacao_generica) { %>
-                            <div style="font-style: italic; color: #555; font-size: 8.5px; margin-top: 6px; padding-top: 4px; border-top: 1px solid #f9f9f9;">
-                                <%= item.especificacao_generica %>
-                            </div>
-                        <% } %>
-                    </div>
-
-                    <!-- DADOS FINANCEIROS -->
-                    <div style="margin-top: 10px; padding-top: 6px; border-top: 1px dashed #eee; display: flex; justify-content: space-between; align-items: baseline; font-size: 9px;">
-                        <div style="display: flex; gap: 30px;">
-                            <span>Quantidade: <strong><%= item.quantity %></strong></span>
-                            <span>Valor Unitário: <strong><%= item.unit_price_formatted %></strong></span>
+                    <!-- METAFIELD NO TOPO (DESTAQUE) -->
+                    <% if (item.especificacao_generica) { %>
+                        <div style="font-style: italic; color: #814620; font-size: 9px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #f9f9f9;">
+                            <%= item.especificacao_generica %>
                         </div>
-                        <div style="font-size: 11px; font-weight: bold; color: #000; letter-spacing: 0.5px;">
-                            VALOR TOTAL: <%= item.total_price_formatted %>
+                    <% } %>
+
+                    <div style="display: flex; justify-content: space-between;">
+                        <!-- BULLETS (COLUNA 1) -->
+                        <div style="flex: 1; font-size: 9.5px; line-height: 1.4; color: #333; padding-right: 15px;">
+                            <% if (item.technical_specification) { 
+                                const specs = item.technical_specification.split('\n').filter(line => line.trim());
+                                specs.forEach(spec => {
+                            %>
+                                <div style="margin-bottom: 2px;">• <%= spec.trim() %></div>
+                            <% }); } %>
+                        </div>
+
+                        <!-- FINANCEIRO NA LATERAL (DIREITA) -->
+                        <div style="flex: 0 0 250px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid #f9f9f9; padding-left: 15px; font-size: 9px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #666;">Qtde:</span>
+                                <strong><%= item.quantity %></strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #666;">Unitário:</span>
+                                <strong><%= item.unit_price_formatted %></strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-top: 5px; padding-top: 5px; border-top: 1px solid #eee;">
+                                <span style="color: #000; font-weight: bold;">VALOR TOTAL:</span>
+                                <strong style="font-size: 11px;"><%= item.total_price_formatted %></strong>
+                            </div>
                         </div>
                     </div>
                 </div>
