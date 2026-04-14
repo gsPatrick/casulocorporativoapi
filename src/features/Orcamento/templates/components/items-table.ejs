@@ -6,26 +6,29 @@
             currentCategory = item.category;
     %>
         <div style="border-bottom: 2px solid #000; padding: 2px 0; margin-top: 8px; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: baseline;">
-            <span style="font-size: 10px; font-weight: bold; text-transform: uppercase;"><%= currentCategory %></span>
-            <span style="font-size: 7px; color: #999;">AMBIENTE</span>
+            <span style="font-size: 11px; font-weight: bold; text-transform: uppercase;"><%= currentCategory %></span>
+            <span style="font-size: 8px; color: #999;">AMBIENTE</span>
         </div>
     <% } %>
 
-        <div style="margin-bottom: 5px; page-break-inside: avoid; break-inside: avoid;">
-            <div style="border-top: 1px solid #eee; padding: 2px 0; display: flex; align-items: center; margin-bottom: 3px;">
-                <div style="width: 40px; font-size: 8px; color: #666; font-weight: bold;">
-                    #<%= (index + 1).toString().padStart(3, '0') %>
+        <div style="margin-bottom: 8px; page-break-inside: avoid; break-inside: avoid;">
+            <!-- FULL WIDTH ITEM HEADER: Title + Legend + Price -->
+            <div style="border-top: 1px solid #eee; padding: 3px 0; display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                <div style="display: flex; align-items: center; flex: 1;">
+                    <span style="font-size: 8.5px; color: #666; font-weight: bold; margin-right: 10px;">#<%= (index + 1).toString().padStart(3, '0') %></span>
+                    <span style="font-size: 10.5px; font-weight: bold; text-transform: uppercase;"><%= item.title %></span>
+                    <% if (item.legend_id) { %>
+                        <span style="border: 1px solid #000; padding: 0px 5px; font-size: 8px; font-weight: bold; margin-left: 10px;"><%= item.legend_id %></span>
+                    <% } %>
                 </div>
-                <div style="flex: 1; font-size: 10px; font-weight: bold; text-transform: uppercase;">
-                    <%= item.title %>
+                <!-- TOTAL ITEM ALIGNED TO THE RIGHT -->
+                <div style="font-size: 11px; font-weight: bold; color: #000;">
+                    Subtotal: <%= item.total_price_formatted %>
                 </div>
-                <% if (item.legend_id) { %>
-                    <div style="border: 1px solid #000; padding: 0px 4px; font-size: 7px; font-weight: bold;"><%= item.legend_id %></div>
-                <% } %>
             </div>
 
-            <div style="display: flex; align-items: stretch; gap: 15px;">
-                <!-- IMAGE -->
+            <div style="display: flex; align-items: flex-start; gap: 20px;">
+                <!-- IMAGE (Fixed) -->
                 <div style="flex: 0 0 95px; width: 95px; height: 95px; border: 1px solid #f9f9f9; display: flex; align-items: center; justify-content: center;">
                     <% if (item.custom_image_base64) { %>
                         <img src="data:image/png;base64,<%= item.custom_image_base64 %>" style="max-width: 95%; max-height: 95%; width: auto; height: auto; display: block; object-fit: contain;">
@@ -34,11 +37,11 @@
                     <% } %>
                 </div>
 
-                <!-- INFO (WIDER NOW) -->
-                <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-                    <div style="font-size: 9px; line-height: 1.25; color: #333;">
+                <!-- SPECS (Expanding to fill space) -->
+                <div style="flex: 1;">
+                    <div style="font-size: 9.5px; line-height: 1.35; color: #333;">
                         <% if (item.technical_specification) { %>
-                            <div style="margin-bottom: 4px;">
+                            <div style="margin-bottom: 5px;">
                                 <% item.technical_specification.split('\n').filter(line => line.trim()).forEach(line => { %>
                                     <div style="margin-bottom: 1px;">• <%= line.trim() %></div>
                                 <% }); %>
@@ -46,21 +49,16 @@
                         <% } %>
 
                         <% if (item.especificacao_generica) { %>
-                            <div style="font-style: italic; color: #666; font-size: 8.5px; border-top: 1px solid #fcfcfc; padding-top: 2px; margin-top: 4px;">
+                            <div style="font-style: italic; color: #555; font-size: 8.5px; border-top: 1px solid #fcfcfc; padding-top: 3px;">
                                 <%= item.especificacao_generica %>
                             </div>
                         <% } %>
                     </div>
 
-                    <!-- FINANCIALS (Fill the right space better) -->
-                    <div style="border-top: 1px dashed #eee; padding-top: 4px; display: flex; align-items: baseline; justify-content: space-between;">
-                        <div style="display: flex; gap: 15px;">
-                            <span style="font-size: 8px;">Qtd: <strong><%= item.quantity %></strong></span>
-                            <span style="font-size: 8px; color: #666;">Unitário: <%= item.unit_price_formatted %></span>
-                        </div>
-                        <div style="font-size: 11px; font-weight: bold; color: #000;">
-                            SUBTOTAL: <%= item.total_price_formatted %>
-                        </div>
+                    <!-- QUANTITY AND UNIT PRICE AT THE BOTTOM -->
+                    <div style="margin-top: 8px; display: flex; gap: 20px; font-size: 8.5px; color: #666;">
+                        <span>Quantidade: <strong><%= item.quantity %></strong></span>
+                        <span>Preço Unitário: <%= item.unit_price_formatted %></span>
                     </div>
                 </div>
             </div>
@@ -68,6 +66,8 @@
     <% }); %>
 </div>
 
-<div style="margin-top: 5px; border-top: 2px solid #000; padding-top: 3px; text-align: right;">
-    <div style="font-size: 14px; font-weight: bold;">VALOR TOTAL DA PROPOSTA: <%= total_formatted %></div>
+<div style="margin-top: 10px; border-top: 2px solid #000; padding-top: 5px; text-align: right;">
+    <div style="font-size: 15px; font-weight: bold; color: #000;">
+        VALOR TOTAL DA PROPOSTA: <%= total_formatted %>
+    </div>
 </div>
