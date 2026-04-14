@@ -5,15 +5,15 @@
         if (item.category && item.category !== currentCategory) { 
             currentCategory = item.category;
     %>
-        <!-- BARRA DE AMBIENTE (ECONÔMICA MAS ESTRUTURADA) -->
+        <!-- BARRA DE AMBIENTE -->
         <div style="border-top: 2px solid #000; border-bottom: 1px solid #000; padding: 4px 10px; margin-top: 15px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: baseline; background: #fdfdfd;">
             <span style="font-size: 11px; font-weight: bold; text-transform: uppercase;"><%= currentCategory %></span>
-            <span style="font-size: 9px; font-weight: bold; color: #000;">TOTAL AMBIENTE: R$ ...</span>
+            <span style="font-size: 9px; font-weight: bold; color: #999;">CATEGORIA / AMBIENTE</span>
         </div>
     <% } %>
 
         <div style="margin-bottom: 12px; page-break-inside: avoid; break-inside: avoid;">
-            <!-- BARRA DE ITEM (ESTILO NEOFFICE) -->
+            <!-- CABEÇALHO DO ITEM -->
             <div style="background: #f5f5f5; padding: 4px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd;">
                 <div style="font-size: 10px; font-weight: bold; text-transform: uppercase;">
                     Item &nbsp; <%= (index + 1).toString().padStart(3, '0') %> &nbsp;&nbsp;&nbsp; <%= item.title %>
@@ -23,8 +23,8 @@
                 <% } %>
             </div>
 
-            <div style="display: flex; align-items: flex-start; gap: 15px; padding: 8px 0;">
-                <!-- IMAGEM LADO ESQUERDO -->
+            <div style="display: flex; align-items: flex-start; gap: 20px; padding: 8px 0;">
+                <!-- IMAGEM -->
                 <div style="flex: 0 0 110px; width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; border: 1px solid #f0f0f0;">
                     <% if (item.custom_image_base64) { %>
                         <img src="data:image/png;base64,<%= item.custom_image_base64 %>" style="max-width: 95%; max-height: 95%; width: auto; height: auto; object-fit: contain;">
@@ -33,38 +33,30 @@
                     <% } %>
                 </div>
 
-                <!-- CONTEÚDO DISTRIBUÍDO EM GRID (PARA MATAR ESPAÇO MORTO) -->
+                <!-- DESCRIÇÃO COM BULLETS (PREENCHENDO O ESPAÇO) -->
                 <div style="flex: 1;">
-                    <div style="display: flex; flex-wrap: wrap; width: 100%; font-size: 9px; line-height: 1.5; color: #333;">
+                    <div style="font-size: 9.5px; line-height: 1.4; color: #333; margin-bottom: 8px;">
                         <% if (item.technical_specification) { 
                             const specs = item.technical_specification.split('\n').filter(line => line.trim());
                             specs.forEach(spec => {
-                                const parts = spec.split(':');
                         %>
-                            <div style="width: 50%; margin-bottom: 2px;">
-                                <% if (parts.length > 1) { %>
-                                    <span style="color: #666;"><%= parts[0].trim() %>:</span> <strong><%= parts.slice(1).join(':').trim() %></strong>
-                                <% } else { %>
-                                    • <%= spec.trim() %>
-                                <% } %>
-                            </div>
+                            <div style="margin-bottom: 2px;">• <%= spec.trim() %></div>
                         <% }); } %>
 
-                        <!-- METAFIELD INTEGRADO NO GRID -->
                         <% if (item.especificacao_generica) { %>
-                            <div style="width: 100%; font-style: italic; color: #814620; margin-top: 5px; border-top: 1px solid #f9f9f9; padding-top: 2px;">
+                            <div style="font-style: italic; color: #555; font-size: 8.5px; margin-top: 6px; padding-top: 4px; border-top: 1px solid #f9f9f9;">
                                 <%= item.especificacao_generica %>
                             </div>
                         <% } %>
                     </div>
 
-                    <!-- LINHA DE DADOS FINANCEIROS (PREENCHENDO HORIZONTAL) -->
-                    <div style="margin-top: 10px; padding-top: 5px; border-top: 1px dashed #eee; display: flex; justify-content: space-between; align-items: baseline; font-size: 9px;">
-                        <div style="display: flex; gap: 40px;">
-                            <span>Qtde: <strong><%= item.quantity %></strong></span>
-                            <span>Unitário: <strong><%= item.unit_price_formatted %></strong></span>
+                    <!-- DADOS FINANCEIROS -->
+                    <div style="margin-top: 10px; padding-top: 6px; border-top: 1px dashed #eee; display: flex; justify-content: space-between; align-items: baseline; font-size: 9px;">
+                        <div style="display: flex; gap: 30px;">
+                            <span>Quantidade: <strong><%= item.quantity %></strong></span>
+                            <span>Valor Unitário: <strong><%= item.unit_price_formatted %></strong></span>
                         </div>
-                        <div style="font-size: 11px; font-weight: bold; color: #000;">
+                        <div style="font-size: 11px; font-weight: bold; color: #000; letter-spacing: 0.5px;">
                             VALOR TOTAL: <%= item.total_price_formatted %>
                         </div>
                     </div>
