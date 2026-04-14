@@ -5,7 +5,7 @@ const { Resend } = require('resend');
 class OrcamentoService {
   async createOrcamento(data) {
     const startService = Date.now();
-    const parsedItems = this.parseItems(data.items);
+    const parsedItems = await this.parseItems(data.items);
     const originalPrice = this.calculateTotalPrice(parsedItems);
     
     // Novas Regras de Negócio: Descontos e Tags (v4.0.0)
@@ -194,17 +194,46 @@ class OrcamentoService {
     }
   }
 
-  parseItems(items) {
+  async parseItems(items) {
     if (!Array.isArray(items)) return [];
+    
+    const axios = require('axios');
+    const shop = process.env.SHOPIFY_SHOP || 'casulo-corporativa.myshopify.com';
+    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN || process.env.SHOPIFY_API_SECRET; // Usando o que estiver disponível
 
-    return items.map(item => {
-      // Itens configuráveis agora incluem technical_specification e custom_image (Snapshot)
+    return await Promise.all(items.map(async (item) => {
+      let especificacao_generica = null;
+
+      // Buscar Metafield do Shopify se houver product_id
+      if (item.product_id && accessToken) {
+        try {
+          const productId = item.product_id.toString().replace('gid://shopify/Product/', '');
+          const response = await axios({
+            url: `https://${shop}/admin/api/2024-01/products/${productId}/metafields.json`,
+            method: 'GET',
+            headers: {
+              'X-Shopify-Access-Token': accessToken,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          // Filtrar pelo namespace e key solicitados
+          const metafield = response.data.metafields.find(m => m.namespace === 'custom' && m.key === 'especificacao_generica');
+          if (metafield) {
+            especificacao_generica = metafield.value;
+          }
+        } catch (error) {
+          console.error(`[PDF SERVICE]: Falha ao buscar metafield para produto ${item.product_id}:`, error.message);
+        }
+      }
+
       const parsedItem = {
         type: item.type || 'standard',
         product_id: item.product_id,
         variant_id: item.variant_id || null,
         title: item.title || 'Produto',
         technical_specification: item.technical_specification || '',
+        especificacao_generica: item.especificacao_generica || especificacao_generica,
         price: item.price || 0,
         additional_info: item.additional_info || '',
         custom_image: item.custom_image || null,
@@ -214,7 +243,7 @@ class OrcamentoService {
       };
 
       return parsedItem;
-    });
+    }));
   }
 
   calculateTotalPrice(items) {
@@ -316,19 +345,20 @@ class OrcamentoService {
     const fs = require('fs');
     const path = require('path');
     const axios = require('axios');
+    const sharp = require('sharp'); // Biblioteca para Autocrop
     const imagesDir = path.join(__dirname, '../../temp/images');
     
     if (!fs.existsSync(imagesDir)) {
       fs.mkdirSync(imagesDir, { recursive: true });
     }
-
+ 
     const promises = Object.keys(base64Map).map(async (index) => {
       const data = base64Map[index];
       if (!data) return;
-
+ 
       const fileName = `snapshot-${orcamentoId}-${index}.png`;
       const filePath = path.join(imagesDir, fileName);
-
+ 
       try {
         let buffer;
         if (data.startsWith('data:image')) {
@@ -348,16 +378,22 @@ class OrcamentoService {
           return;
         }
 
-        fs.writeFileSync(filePath, buffer);
+        // --- APLICAÇÃO DO AUTOCROP (TRIM) ---
+        console.log(`[ORCAMENTO SERVICE]: Aplicando Autocrop na imagem ${fileName}...`);
+        const croppedBuffer = await sharp(buffer)
+          .trim() // Remove bordas de cor sólida (branco ou transparente)
+          .toBuffer();
+ 
+        fs.writeFileSync(filePath, croppedBuffer);
+        
         let appUrl = process.env.APP_URL || 'http://localhost:3000';
         if (appUrl.endsWith('/')) appUrl = appUrl.slice(0, -1);
-        console.log(`[ORCAMENTO SERVICE]: Imagem salva em disco: ${fileName} (${buffer.length} bytes)`);
-        console.log(`[LINK DA IMAGEM]: ${appUrl}/api/orcamento/images/${orcamentoId}/${index}`);
+        console.log(`[ORCAMENTO SERVICE]: Imagem salva e trimmada: ${fileName} (${croppedBuffer.length} bytes)`);
       } catch (err) {
         console.error(`[ORCAMENTO SERVICE]: Falha ao processar imagem ${index} (${data.substring(0, 30)}...):`, err.message);
       }
     });
-
+ 
     await Promise.all(promises);
   }
 

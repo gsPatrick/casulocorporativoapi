@@ -1,63 +1,58 @@
-<table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px;">
-    <thead>
-        <tr style="background-color: #f9f9f9; border-bottom: 1px solid #ddd; text-align: left;">
-            <th style="padding: 10px; border: 1px solid #ddd; width: 150px; text-align: center;">Produto</th>
-            <th style="padding: 10px; border: 1px solid #ddd;">Descrição do produto/serviço</th>
-            <th style="padding: 10px; border: 1px solid #ddd; width: 30px; text-align: center;">Qtd.</th>
-            <th style="padding: 10px; border: 1px solid #ddd; width: 70px; text-align: right;">Preço un.</th>
-            <th style="padding: 10px; border: 1px solid #ddd; width: 70px; text-align: right;">Preço total</th>
-        </tr>
-    </thead>
-    <tbody>
-        <% items.forEach((item, index) => { %>
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 15px; border: 1px solid #ddd; text-align: center; vertical-align: middle; background: #ffffff; overflow: hidden;">
-                    <% if (item.custom_image_base64) { %>
-                        <div style="width: 130px; height: 130px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                            <img src="data:image/png;base64,<%= item.custom_image_base64 %>" style="max-width: 100%; max-height: 100%; height: auto; display: block; border: none; object-fit: contain; transform: scale(2.0);">
-                        </div>
-                    <% } else { %>
-                        <div style="width: 130px; height: 100px; background: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 8px; color: #ccc; margin: 0 auto;">Sem imagem</div>
-                    <% } %>
-                </td>
-                <td style="padding: 15px 20px; border: 1px solid #ddd; vertical-align: top;">
-                    <div style="font-weight: bold; font-size: 16px; margin-bottom: 10px; color: #000; text-transform: uppercase; line-height: 1.2;">
-                        <%= item.title %>
-                    </div>
-                    
-                    <ul style="margin: 0; padding-left: 15px; font-size: 12px; color: #444; line-height: 1.6;">
-                        <% (item.technical_specification || '').split('\n').filter(s => s.trim() !== '').forEach(spec => { %>
-                            <li style="margin-bottom: 4px;"><%= spec.trim() %></li>
-                        <% }); %>
-                    </ul>
+<div style="margin-top: 0;">
+    <% 
+    let currentCategory = null; 
+    items.forEach((item, index) => { 
+        if (item.category && item.category !== currentCategory) { 
+            currentCategory = item.category;
+    %>
+        <div style="border-bottom: 2px solid #000; padding: 2px 0; margin-top: 8px; margin-bottom: 3px; display: flex; justify-content: space-between; align-items: baseline;">
+            <span style="font-size: 10px; font-weight: bold; text-transform: uppercase;"><%= currentCategory %></span>
+            <span style="font-size: 7px; color: #999;">AMBIENTE</span>
+        </div>
+    <% } %>
 
-                    <% if (item.additional_info && item.additional_info.trim() !== '') { %>
-                        <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #eee; font-size: 11px; color: #666;">
-                            <strong style="color: #000; text-transform: uppercase; font-size: 9px;">Observações:</strong> <br>
-                            <%- item.additional_info.replace(/\n/g, '<br>') %>
-                        </div>
+        <div style="margin-bottom: 5px; page-break-inside: avoid; break-inside: avoid;">
+            <div style="border-top: 1px solid #eee; padding: 2px 0; display: flex; align-items: center; margin-bottom: 3px;">
+                <div style="width: 40px; font-size: 8px; color: #666; font-weight: bold;">
+                    #<%= (index + 1).toString().padStart(3, '0') %>
+                </div>
+                <div style="flex: 1; font-size: 10px; font-weight: bold; text-transform: uppercase;">
+                    <%= item.title %>
+                </div>
+                <% if (item.legend_id) { %>
+                    <div style="border: 1px solid #000; padding: 0px 4px; font-size: 7px; font-weight: bold;"><%= item.legend_id %></div>
+                <% } %>
+            </div>
+
+            <div style="display: flex; align-items: flex-start; gap: 15px;">
+                <div style="flex: 0 0 95px; width: 95px; height: 95px; border: 1px solid #f9f9f9; display: flex; align-items: center; justify-content: center;">
+                    <% if (item.custom_image_base64) { %>
+                        <img src="data:image/png;base64,<%= item.custom_image_base64 %>" style="max-width: 95%; max-height: 95%; width: auto; height: auto; display: block; object-fit: contain;">
+                    <% } else { %>
+                        <div style="font-size: 6px; color: #ccc;">S/IMG</div>
                     <% } %>
-                    <% if (item.configuration_url) { %>
-                        <div style="margin-top: 12px;">
-                            <a href="<%= item.configuration_url %>" style="color: #000; text-decoration: underline; font-weight: bold; font-size: 10px; text-transform: uppercase;">[Ver Reconfiguração 3D]</a>
-                        </div>
-                    <% } %>
-                </td>
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: center; vertical-align: top; font-size: 13px;">
-                    <%= item.quantity %>
-                </td>
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: right; vertical-align: top; color: #333; font-size: 12px;">
-                    <%= item.unit_price_formatted %>
-                </td>
-                <td style="padding: 10px; border: 1px solid #ddd; text-align: right; vertical-align: top; font-weight: bold; font-size: 13px;">
-                    <%= item.total_price_formatted %>
-                </td>
-            </tr>
-        <% }); %>
-    </tbody>
-</table>
-<div style="margin-top: 25px; text-align: right; font-size: 12px; color: #444;">
-    <div style="margin-top: 10px; font-size: 18px; color: #000; border-top: 2px solid #000; display: inline-block; padding-top: 10px; min-width: 250px;">
-        <strong>Total da Proposta: <%= total_formatted %></strong>
-    </div>
+                </div>
+
+                <div style="flex: 1;">
+                    <div style="font-size: 9px; line-height: 1.2; margin-bottom: 3px;">
+                        <% if (item.technical_specification) { %>
+                            <% item.technical_specification.split('\n').filter(line => line.trim()).forEach(line => { %>
+                                <div style="margin-bottom: 1px;">• <%= line.trim() %></div>
+                            <% }); %>
+                        <% } %>
+                    </div>
+
+                    <div style="border-top: 1px dashed #f5f5f5; padding-top: 2px; display: flex; align-items: baseline; gap: 10px;">
+                        <div style="font-size: 8px;">Qtd: <strong><%= item.quantity %></strong></div>
+                        <div style="font-size: 8px; color: #666;">Un: <%= item.unit_price_formatted %></div>
+                        <div style="font-size: 10px; font-weight: bold; margin-left: auto;">Total: <%= item.total_price_formatted %></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <% }); %>
+</div>
+
+<div style="margin-top: 5px; border-top: 2px solid #000; padding-top: 3px; text-align: right;">
+    <div style="font-size: 14px; font-weight: bold;">TOTAL GERAL: <%= total_formatted %></div>
 </div>

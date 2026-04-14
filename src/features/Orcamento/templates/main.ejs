@@ -7,7 +7,7 @@
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
             margin: 0;
-            padding: 40px;
+            padding: 15px 15px 40px 15px; /* Aumentado padding inferior para segurança */
             color: #333;
             background: #fff;
         }
@@ -60,59 +60,49 @@
         <!-- HEADER COMPONENT -->
         <%- include('components/header') %>
 
-        <div class="proposta-header">
-            <h1>Proposta Nº <%= short_code || id.substring(0, 8).toUpperCase() %></h1>
+        <div class="proposta-header" style="text-align: center; margin-bottom: 20px;">
+            <h1 style="font-size: 18px; margin: 0; color: #000; letter-spacing: 1px; text-transform: uppercase;">PROPOSTA Nº <%= short_code || id.substring(0, 8).toUpperCase() %></h1>
         </div>
 
-        <div class="box-info">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 10px; line-height: 1.4; color: #333;">
             <!-- CLIENT INFO -->
-            <div class="info-card">
-                <strong>Para:</strong>
+            <div style="border: 1px solid #eee; padding: 10px 12px; flex: 1; margin-right: 15px;">
+                <strong style="color: #000; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 3px;">Para:</strong>
                 <% if (customer_name) { %>
                     <%= customer_name %><br>
                 <% } %>
                 <% if (customer_empresa) { %>
-                    Empresa: <%= customer_empresa %><br>
+                    <%= customer_empresa %><br>
                 <% } %>
-                <% if (customer_email) { %>
-                    Email: <%= customer_email %><br>
-                <% } %>
-                <% if (customer_whatsapp) { %>
-                    WhatsApp: <%= customer_whatsapp %><br>
-                <% } %>
-                <% if (customer_cep) { %>
-                    CEP: <%= customer_cep %>
+                <% if (customer_email || customer_whatsapp) { %>
+                    <%= customer_email %> <%= customer_whatsapp ? '| ' + customer_whatsapp : '' %>
                 <% } %>
             </div>
 
             <!-- PROPOSAL DATA -->
-            <div class="info-card" style="max-width: 250px;">
-                <strong>Dados da Proposta:</strong>
-                Número: <%= short_code || id.substring(0, 8).toUpperCase() %><br>
+            <div style="border: 1px solid #eee; padding: 10px 12px; width: 220px;">
+                <strong style="color: #000; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 3px;">Dados da Proposta:</strong>
                 Data: <%= date %><br>
                 Validade: 15 dias<br>
                 <% if (vendedor) { %>
-                    Consultor: <%= vendedor %><br>
-                <% } %>
-                <% if (tags && tags.length > 0) { %>
-                    Tags: <%= tags.join(', ') %>
+                    Consultor: <%= vendedor %>
                 <% } %>
             </div>
         </div>
 
-        <!-- ITEMS TABLE COMPONENT -->
+        <!-- ITEMS LIST COMPONENT -->
         <%- include('components/items-table') %>
 
-        <!-- CONDITIONS -->
-        <div style="margin-top: 30px; font-size: 11px; border: 1px solid #eee; padding: 15px; background: #fafafa;">
-            <strong style="display: block; margin-bottom: 10px;">Condições Comerciais:</strong>
-            1. Preços sujeitos a alteração sem aviso prévio.<br>
-            2. Prazo de entrega a combinar conforme disponibilidade de estoque.<br>
-            3. Pagamento: Sob consulta (B2B).
-        </div>
-
-        <div class="footer-note">
-            Casulo Corporativa - Transformando espaços de trabalho.
+        <!-- TOTAL AND CONDITIONS (Only this block is kept together) -->
+        <div style="page-break-inside: avoid; margin-top: 10px;">
+            <!-- CONDITIONS -->
+            <div style="margin-top: 15px; font-size: 10px; color: #666; border-top: 1px solid #eee; padding-top: 10px; line-height: 1.4;">
+                <strong style="display: block; margin-bottom: 5px; color: #000; text-transform: uppercase;">Condições Gerais:</strong>
+                • Preços expressos em Reais (R$).<br>
+                • Os prazos de entrega serão confirmados após a aprovação da proposta.<br>
+                • Esta proposta está sujeita a análise de crédito.<br>
+                • Casulo Indústria e Comércio de Móveis Ltda - Rua Acadêmico Reinaldo Consoni, 681 - Florianópolis, SC.
+            </div>
         </div>
     </div>
 </body>
