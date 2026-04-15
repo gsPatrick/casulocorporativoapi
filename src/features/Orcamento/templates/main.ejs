@@ -105,9 +105,13 @@
             </div>
 
             <% if (termos_contrato) { %>
-                <div style="margin-top: 15px; font-size: 10px; color: #000; border-top: 1px dashed #ddd; padding-top: 10px; line-height: 1.5; white-space: pre-wrap;">
-                    <strong style="display: block; margin-bottom: 5px; text-transform: uppercase;">Termos e Observações do Contrato:</strong>
-                    <%= termos_contrato %>
+                <div style="margin-top: 30px; page-break-inside: avoid;">
+                    <div style="border-top: 1.5px solid #111; padding-top: 12px; margin-bottom: 8px;">
+                        <strong style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #000;">Termos e Observações do Contrato</strong>
+                    </div>
+                    <div style="font-size: 10.5px; color: #111; line-height: 1.7; text-align: justify; white-space: pre-wrap; padding: 0 5px;">
+                        <%= termos_contrato %>
+                    </div>
                 </div>
             <% } %>
         </div>
