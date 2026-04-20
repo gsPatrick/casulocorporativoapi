@@ -380,14 +380,43 @@ class AdminController {
       // 1. Resetar todos os outros
       await Condicao.update({ is_default: false }, { where: {} });
 
-      // 2. Setar o novo padrão
       const condicao = await Condicao.findByPk(id);
       if (!condicao) return res.status(404).json({ error: 'Condição não encontrada' });
 
       await condicao.update({ is_default: true });
+
+      // 3. ATUALIZAÇÃO EM MASSA: Aplicar a todos os orçamentos (v5.1.0)
+      const allOrcamentos = await Orcamento.findAll();
+      const updatePromises = allOrcamentos.map(async (orc) => {
+        const subtotal = parseFloat(orc.original_price || orc.total_price || 0);
+        const valor = parseFloat(condicao.valor);
+        const ajuste = (subtotal * valor) / 100;
+        
+        let finalPrice = subtotal;
+        if (condicao.tipo === 'desconto') {
+          finalPrice -= ajuste;
+        } else {
+          finalPrice += ajuste;
+        }
+
+        return orc.update({
+          total_price: finalPrice,
+          condicao_json: {
+            id: condicao.id,
+            nome: condicao.nome,
+            tipo: condicao.tipo,
+            valor: valor
+          }
+        });
+      });
+
+      await Promise.all(updatePromises);
+      console.log(`[ADMIN CONTROLLER]: Atualização em massa concluída para ${allOrcamentos.length} orçamentos.`);
+
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: 'Erro ao definir condição padrão' });
+      console.error('[ADMIN CONTROLLER]: Erro no Bulk Update de Condições:', error.message);
+      res.status(500).json({ error: 'Erro ao processar atualização em massa' });
     }
   }
 }

@@ -69,13 +69,24 @@
             <div style="border: 1px solid #eee; padding: 10px 12px; flex: 1; margin-right: 15px;">
                 <strong style="color: #000; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 3px;">Para:</strong>
                 <% if (customer_name) { %>
-                    <%= customer_name %><br>
+                    <span style="font-weight: bold;"><%= customer_name %></span><br>
                 <% } %>
-                <% if (customer_empresa) { %>
-                    <%= customer_empresa %><br>
+                <% if (customer_company) { %>
+                    <%= customer_company %><br>
+                <% } %>
+                <% if (customer_cnpj) { %>
+                    CNPJ: <%= customer_cnpj %><br>
+                <% } %>
+                <% if (customer_address) { %>
+                    <%= customer_address %><br>
+                <% } %>
+                <% if (customer_cep) { %>
+                    CEP: <%= customer_cep %><br>
                 <% } %>
                 <% if (customer_email || customer_whatsapp) { %>
-                    <%= customer_email %> <%= customer_whatsapp ? '| ' + customer_whatsapp : '' %>
+                    <div style="margin-top: 5px; color: #666; font-size: 9px;">
+                        <%= customer_email %> <%= customer_whatsapp ? '| ' + customer_whatsapp : '' %>
+                    </div>
                 <% } %>
             </div>
 

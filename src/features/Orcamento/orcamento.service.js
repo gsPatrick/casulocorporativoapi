@@ -37,13 +37,15 @@ class OrcamentoService {
     
     // Novas Regras de Negócio: Descontos e Tags (v4.0.0)
     const { vendedor, parceiro, customerTags: parsedTags } = this.parseBusinessTags(data.customer_tags || []);
-    const orderCount = parseInt(data.customer_order_count || 0);
-    
     const finalOriginalPrice = data.original_total_price ? parseFloat(data.original_total_price) : originalPrice;
     const finalLiquidPrice = data.total_price ? parseFloat(data.total_price) : subtotal;
-    const finalDiscountAmount = 0;
+
+    // 1. Extrair Metadados B2B (v5.4.0)
+    const metadata = data.customer_metadata?.metafields?.custom || {};
+    const customerCode = metadata.codigo_do_cliente || (data.lead?.registration_type === 'b2b_completion' ? data.lead.codigo_cliente : null);
     
-    const shortCode = await this.generateShortCode();
+    // Gerar Short Code Personalizado: [COD][YYYY][SEQ]
+    const shortCode = await this.generateShortCode(customerCode);
 
     // 1. Persistir no Postgres
     
@@ -103,7 +105,13 @@ class OrcamentoService {
       parceiro,
       customer_tags: data.customer_tags || [],
       status: 'pendente',
-      condicao_json: condicaoJson
+      condicao_json: condicaoJson,
+      // Novos campos B2B
+      customer_cnpj: metadata.cnpj || data.lead?.cnpj || null,
+      customer_company: metadata.empresa || data.lead?.empresa || data.lead?.razao_social || null,
+      customer_address: metadata.endereco || data.lead?.endereco || null,
+      customer_cep: metadata.cep || metadata.cep_dot || data.lead?.cep || null,
+      customer_code: customerCode
     });
     console.log(`[${new Date().toISOString()}] [SERVICE]: Escrita no Postgres concluída em ${Date.now() - dbStart}ms (Total: ${Date.now() - startService}ms)`);
 
@@ -535,22 +543,40 @@ class OrcamentoService {
     }
   }
 
-  async generateShortCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    let exists = true;
+  async generateShortCode(customerCode) {
+    const { Op } = require('sequelize');
+    const year = new Date().getFullYear();
+    
+    // 1. Definir Prefixo
+    const prefix = customerCode ? customerCode.toString().toUpperCase() : 'CAS';
+    
+    // 2. Calcular Sequencial do Ano Atual
+    const count = await Orcamento.count({
+      where: {
+        createdAt: {
+          [Op.gte]: new Date(`${year}-01-01`),
+          [Op.lt]: new Date(`${year + 1}-01-01`)
+        }
+      }
+    });
+
+    const sequential = (count + 1).toString().padStart(4, '0');
+    
+    // 3. Montar Código: PREFIXO + ANO + SEQUENCIAL
+    let code = `${prefix}${year}${sequential}`;
+    
+    // 4. Verificação de Unicidade
+    let finalCode = code;
+    let exists = await Orcamento.findOne({ where: { short_code: finalCode } });
+    let retry = 1;
     
     while (exists) {
-      code = '';
-      for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      
-      const found = await Orcamento.findOne({ where: { short_code: code } });
-      if (!found) exists = false;
+      finalCode = `${code}_${retry}`;
+      exists = await Orcamento.findOne({ where: { short_code: finalCode } });
+      retry++;
     }
     
-    return code;
+    return finalCode;
   }
 
   async getOrcamentoByShortCode(code) {

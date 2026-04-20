@@ -85,6 +85,26 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.JSONB,
     allowNull: true,
   },
+  customer_cnpj: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  customer_company: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  customer_address: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  customer_cep: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  customer_code: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   timestamps: true,
   tableName: 'orcamentos',
