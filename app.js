@@ -11,6 +11,7 @@ const routes = require('./src/routes');
 require('./src/models/Orcamento');
 require('./src/models/SyncQueue');
 require('./src/models/CartItem');
+require('./src/models/Condicao');
 
 const app = express();
 const PORT = process.env.PORT || 3000;

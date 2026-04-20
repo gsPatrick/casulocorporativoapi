@@ -81,6 +81,10 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+  condicao_json: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+  },
 }, {
   timestamps: true,
   tableName: 'orcamentos',

@@ -1,4 +1,5 @@
 const Orcamento = require('../../models/Orcamento');
+const Condicao = require('../../models/Condicao');
 const shopify = require('../../config/shopify');
 const OrcamentoService = require('../Orcamento/orcamento.service');
 const orcService = OrcamentoService;
@@ -35,14 +36,22 @@ class AdminController {
       const isValidRequest = await this.validateHmac(req, res);
       if (!isValidRequest) return;
 
-      // 2. Buscar todos os orçamentos do banco Postgres
+      // 2. Buscar dados do banco
       const orcamentos = await Orcamento.findAll({
         order: [['createdAt', 'DESC']]
       });
 
+      const condicoes = await Condicao.findAll({
+        order: [['nome', 'ASC']]
+      });
+      
+      const condicaoPadrao = condicoes.find(c => c.is_default);
+
       // 3. Renderizar EJS com Polaris
       res.render('features/Admin/views/dashboard', {
         orcamentos,
+        condicoes,
+        condicaoPadrao,
         shop: req.query.shop,
         host: req.query.host,
         apiKey: process.env.SHOPIFY_API_KEY
@@ -107,7 +116,7 @@ class AdminController {
   async updateOrcamento(req, res) {
     try {
       const { id } = req.params;
-      const { items, discount_type, discount_value } = req.body;
+      const { items, condicao_id, termos_contrato } = req.body;
       
       const session = await this.validateSession(req, res);
       if (!session) return;
@@ -139,14 +148,36 @@ class AdminController {
         return itemData;
       });
 
-      // 2. Persistir no Banco de Dados
+      // 2. Aplicar Condição Comercial selecionada (se houver)
+      let finalPrice = subtotal;
+      let condicaoData = null;
+
+      if (condicao_id) {
+        const condicao = await Condicao.findByPk(condicao_id);
+        if (condicao) {
+          const valor = parseFloat(condicao.valor);
+          const ajuste = (subtotal * valor) / 100;
+          if (condicao.tipo === 'desconto') {
+            finalPrice -= ajuste;
+          } else {
+            finalPrice += ajuste;
+          }
+          condicaoData = {
+            id: condicao.id,
+            nome: condicao.nome,
+            tipo: condicao.tipo,
+            valor: valor
+          };
+        }
+      }
+
+      // 3. Persistir no Banco de Dados
       await orcamento.update({
         line_items_json: updatedItems,
         original_price: subtotal,
-        discount_amount: 0,
-        discount_category: null,
-        total_price: subtotal,
-        termos_contrato: req.body.termos_contrato // v4.11.0
+        total_price: finalPrice,
+        condicao_json: condicaoData,
+        termos_contrato: termos_contrato
       });
 
       // 3. Reenviar e-mail se for convidado (Lead) para notificar do novo PDF (v4.2.1)
@@ -268,6 +299,95 @@ class AdminController {
       }
     } catch (error) {
       console.error('[ADMIN SYNC FATAL]:', error.message);
+    }
+  }
+
+  // --- CRUD DE CONDICÕES COMERCIAIS (v5.0.0) ---
+
+  async listCondicoes(req, res) {
+    try {
+      const condicoes = await Condicao.findAll({ order: [['is_default', 'DESC'], ['nome', 'ASC']] });
+      res.json(condicoes);
+    } catch (error) {
+      res.status(500).json({ error: 'Erro ao listar condições' });
+    }
+  }
+
+  async createCondicao(req, res) {
+    try {
+      const { nome, tipo, valor, is_default } = req.body;
+      
+      const session = await this.validateSession(req, res);
+      if (!session) return;
+
+      if (is_default) {
+        await Condicao.update({ is_default: false }, { where: {} });
+      }
+
+      const condicao = await Condicao.create({ nome, tipo, valor, is_default: !!is_default });
+      res.status(201).json(condicao);
+    } catch (error) {
+      res.status(500).json({ error: 'Erro ao criar condição' });
+    }
+  }
+
+  async updateCondicao(req, res) {
+    try {
+      const { id } = req.params;
+      const { nome, tipo, valor, is_default } = req.body;
+      
+      const session = await this.validateSession(req, res);
+      if (!session) return;
+
+      const condicao = await Condicao.findByPk(id);
+      if (!condicao) return res.status(404).json({ error: 'Condição não encontrada' });
+
+      if (is_default && !condicao.is_default) {
+        await Condicao.update({ is_default: false }, { where: {} });
+      }
+
+      await condicao.update({ nome, tipo, valor, is_default: !!is_default });
+      res.json(condicao);
+    } catch (error) {
+      res.status(500).json({ error: 'Erro ao atualizar condição' });
+    }
+  }
+
+  async deleteCondicao(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const session = await this.validateSession(req, res);
+      if (!session) return;
+
+      const condicao = await Condicao.findByPk(id);
+      if (!condicao) return res.status(404).json({ error: 'Condição não encontrada' });
+
+      await condicao.destroy();
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Erro ao excluir condição' });
+    }
+  }
+
+  async setDefaultCondicao(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const session = await this.validateSession(req, res);
+      if (!session) return;
+
+      // 1. Resetar todos os outros
+      await Condicao.update({ is_default: false }, { where: {} });
+
+      // 2. Setar o novo padrão
+      const condicao = await Condicao.findByPk(id);
+      if (!condicao) return res.status(404).json({ error: 'Condição não encontrada' });
+
+      await condicao.update({ is_default: true });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Erro ao definir condição padrão' });
     }
   }
 }

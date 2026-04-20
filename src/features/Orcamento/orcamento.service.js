@@ -8,12 +8,39 @@ class OrcamentoService {
     const parsedItems = await this.parseItems(data.items);
     const originalPrice = this.calculateTotalPrice(parsedItems);
     
+    // 0. Buscar Condição Comercial Padrão (v5.0.0)
+    const Condicao = require('../../models/Condicao');
+    const condicaoPadrao = await Condicao.findOne({ where: { is_default: true } });
+    
+    let subtotal = originalPrice;
+    let condicaoJson = null;
+
+    if (condicaoPadrao) {
+      const valorCondicao = parseFloat(condicaoPadrao.valor);
+      const ajuste = (subtotal * valorCondicao) / 100;
+      
+      if (condicaoPadrao.tipo === 'desconto') {
+        subtotal -= ajuste;
+      } else {
+        subtotal += ajuste;
+      }
+      
+      condicaoJson = {
+        id: condicaoPadrao.id,
+        nome: condicaoPadrao.nome,
+        tipo: condicaoPadrao.tipo,
+        valor: valorCondicao
+      };
+      
+      console.log(`[SERVICE B2B]: Aplicando Condição Padrão: ${condicaoPadrao.nome} (${valorCondicao}%)`);
+    }
+    
     // Novas Regras de Negócio: Descontos e Tags (v4.0.0)
     const { vendedor, parceiro, customerTags: parsedTags } = this.parseBusinessTags(data.customer_tags || []);
     const orderCount = parseInt(data.customer_order_count || 0);
     
     const finalOriginalPrice = data.original_total_price ? parseFloat(data.original_total_price) : originalPrice;
-    const finalLiquidPrice = data.total_price ? parseFloat(data.total_price) : originalPrice;
+    const finalLiquidPrice = data.total_price ? parseFloat(data.total_price) : subtotal;
     const finalDiscountAmount = 0;
     
     const shortCode = await this.generateShortCode();
@@ -75,7 +102,8 @@ class OrcamentoService {
       vendedor,
       parceiro,
       customer_tags: data.customer_tags || [],
-      status: 'pendente'
+      status: 'pendente',
+      condicao_json: condicaoJson
     });
     console.log(`[${new Date().toISOString()}] [SERVICE]: Escrita no Postgres concluída em ${Date.now() - dbStart}ms (Total: ${Date.now() - startService}ms)`);
 

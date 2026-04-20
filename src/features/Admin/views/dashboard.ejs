@@ -152,13 +152,33 @@
             text-align: right;
             font-weight: 700;
         }
-        
+
+        /* Tabs System */
+        .tabs-container { display: flex; gap: 2px; margin-bottom: 20px; border-bottom: 1px solid #ddd; }
+        .tab-btn {
+            background: #f4f4f4; border: none; padding: 12px 25px; cursor: pointer;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+            border-bottom: 3px solid transparent; transition: all 0.2s;
+        }
+        .tab-btn.active { background: #fff; border-bottom-color: #000; color: #000; }
+        .tab-btn:hover:not(.active) { background: #eee; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .star-btn { 
+            background: none; border: none; cursor: pointer; padding: 5px; 
+            color: #ccc; transition: transform 0.2s;
+        }
+        .star-btn.active { color: #FFD700; }
+        .star-btn:hover { transform: scale(1.2); }
+
         .lucide { width: 16px; height: 16px; }
+        .lucide-star.fill { fill: currentColor; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1><i data-lucide="package"></i> Painel de Orçamentos</h1>
+        <h1><i data-lucide="package"></i> Gestão Casulo B2B</h1>
         <div style="display: flex; gap: 10px;">
             <div style="position: relative;">
                 <i data-lucide="search" style="position: absolute; left: 10px; top: 10px; color: #999;"></i>
@@ -169,6 +189,14 @@
             <button class="btn-black btn-outline" onclick="toggleFilters()"><i data-lucide="filter"></i> Filtros</button>
         </div>
     </div>
+
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchTab('tab-orcamentos')">Orçamentos</button>
+        <button class="tab-btn" onclick="switchTab('tab-condicoes')">Condições Comerciais</button>
+    </div>
+
+    <!-- ABA ORÇAMENTOS -->
+    <div id="tab-orcamentos" class="tab-content active">
 
     <!-- PAINEL DE FILTROS -->
     <div id="filter-panel" style="display: none; background: #fafafa; border: 1px solid #eee; padding: 20px; margin-bottom: 20px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
@@ -327,10 +355,29 @@
                                         </div>
                                     <% }); %>
 
-                                    <div style="margin-top: 30px; padding: 20px; background: #fff; border: 1px solid #000; border-style: dashed;">
-                                        <label class="label-premium" style="color: #000;">Termos do Contrato / Observações Adicionais (PDF)</label>
-                                        <textarea name="termos_contrato" id="termos-<%= orc.id %>" class="input-premium" rows="6" placeholder="Ex: Prazo de entrega de 30 dias úteis..." style="resize: vertical; margin-top: 8px;"><%= orc.termos_contrato || '' %></textarea>
-                                        <div style="font-size: 10px; color: #999; margin-top: 5px;">Este texto aparecerá ao final da proposta PDF gerada para o cliente.</div>
+                                    <div style="margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                        <div style="padding: 20px; background: #fff; border: 1px solid #000; border-style: dashed;">
+                                            <label class="label-premium" style="color: #000;">Termos do Contrato / Observações Adicionais (PDF)</label>
+                                            <textarea name="termos_contrato" id="termos-<%= orc.id %>" class="input-premium" rows="6" placeholder="Ex: Prazo de entrega de 30 dias úteis..." style="resize: vertical; margin-top: 8px;"><%= orc.termos_contrato || '' %></textarea>
+                                            <div style="font-size: 10px; color: #999; margin-top: 5px;">Este texto aparecerá ao final da proposta PDF gerada para o cliente.</div>
+                                        </div>
+                                        <div style="padding: 20px; background: #f9f9f9; border: 1px solid #eee;">
+                                            <label class="label-premium">Condição Comercial da Proposta</label>
+                                            <select name="condicao_id" id="condicao-select-<%= orc.id %>" class="input-premium" style="margin-top: 8px; background: #fff;" onchange="recalcTotal('<%= orc.id %>')">
+                                                <option value="">Nenhuma (Valor Bruto)</option>
+                                                <% condicoes.forEach(cond => { %>
+                                                    <option value="<%= cond.id %>" 
+                                                        data-valor="<%= cond.valor %>" 
+                                                        data-tipo="<%= cond.tipo %>"
+                                                        <%= (orc.condicao_json && orc.condicao_json.id === cond.id) ? 'selected' : '' %>>
+                                                        <%= cond.nome %> (<%= cond.tipo === 'desconto' ? '-' : '+' %><%= cond.valor %>%)
+                                                    </option>
+                                                <% }); %>
+                                            </select>
+                                            <div style="font-size: 10px; color: #999; margin-top: 10px; line-height: 1.4;">
+                                                A condição altera o <strong>Total Líquido</strong> da proposta. O PDF exibirá o subtotal e o ajuste aplicado.
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="summary-box" style="text-align: left; background: #fafafa; border: 1px solid #ddd;">
@@ -362,6 +409,94 @@
             </tbody>
         </table>
     </div>
+    </div> <!-- FIM TAB ORÇAMENTOS -->
+
+    <!-- ABA CONDICÕES -->
+    <div id="tab-condicoes" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Gestão de Condições Comerciais</h2>
+            <button class="btn-black" onclick="openCondicaoModal()"><i data-lucide="plus"></i> Nova Condição</button>
+        </div>
+
+        <div class="polaris-card">
+            <table id="table-condicoes">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">PADRÃO</th>
+                        <th>Nome da Condição</th>
+                        <th>Tipo</th>
+                        <th>Valor (%)</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% condicoes.forEach(cond => { %>
+                        <tr id="cond-row-<%= cond.id %>">
+                            <td>
+                                <button class="star-btn <%= cond.is_default ? 'active' : '' %>" onclick="setDefaultCondicao('<%= cond.id %>')" title="Definir como Padrão">
+                                    <i data-lucide="star" class="<%= cond.is_default ? 'fill' : '' %>"></i>
+                                </button>
+                            </td>
+                            <td style="font-weight: 600;"><%= cond.nome %></td>
+                            <td>
+                                <span class="status-badge" style="background: <%= cond.tipo === 'desconto' ? '#fff' : '#000' %>; color: <%= cond.tipo === 'desconto' ? '#000' : '#fff' %>">
+                                    <%= cond.tipo %>
+                                </span>
+                            </td>
+                            <td style="font-weight: 700;"><%= cond.valor %>%</td>
+                            <td style="text-align: right;">
+                                <div style="display: inline-flex; gap: 10px;">
+                                    <button class="btn-black btn-outline" onclick="editCondicao('<%= JSON.stringify(cond) %>')"><i data-lucide="edit"></i></button>
+                                    <button class="btn-black btn-outline" onclick="deleteCondicao('<%= cond.id %>')" style="color: #c0392b;"><i data-lucide="trash-2"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }); %>
+                    <% if (condicoes.length === 0) { %>
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 40px; color: #999;">Nenhuma condição cadastrada.</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- MODAL CONDICAO -->
+    <div id="modal-condicao" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div style="background: #fff; width: 400px; padding: 30px; border-radius: 0; border: 2px solid #000;">
+            <h3 id="modal-condicao-title" style="font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 20px;">Nova Condição Comercial</h3>
+            <form id="form-condicao" onsubmit="saveCondicao(); return false;">
+                <input type="hidden" id="cond-id">
+                <div style="margin-bottom: 15px;">
+                    <label class="label-premium">Nome</label>
+                    <input type="text" id="cond-nome" class="input-premium" required placeholder="Ex: Desconto B2B">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label class="label-premium">Tipo</label>
+                        <select id="cond-tipo" class="input-premium">
+                            <option value="desconto">Desconto</option>
+                            <option value="acréscimo">Acréscimo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label-premium">Valor (%)</label>
+                        <input type="number" id="cond-valor" class="input-premium" step="0.01" required placeholder="0.00">
+                    </div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+                        <input type="checkbox" id="cond-default"> Definir como Condição Padrão
+                    </label>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn-black btn-outline" onclick="closeCondicaoModal()">Cancelar</button>
+                    <button type="submit" class="btn-black">Salvar Condição</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script>
         lucide.createIcons();
@@ -380,11 +515,23 @@
             }
         }
 
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            if (tabId === 'tab-condicoes') lucide.createIcons();
+        }
+
         function toggleEdit(id) {
             const row = document.getElementById(`edit-row-${id}`);
             const isVisible = row.style.display === 'table-row';
             document.querySelectorAll('.edit-row').forEach(r => r.style.display = 'none');
-            if (!isVisible) row.style.display = 'table-row';
+            if (!isVisible) {
+                row.style.display = 'table-row';
+                recalcTotal(id); // Forçar recalculo com a condição atual
+            }
         }
 
         // --- SISTEMA DE FILTROS ---
@@ -433,6 +580,7 @@
             const form = document.getElementById(`form-${id}`);
             const priceInputs = form.querySelectorAll('.item-price-input');
             const qtyInputs = form.querySelectorAll('.item-qty-input');
+            const condicaoSelect = document.getElementById(`condicao-select-${id}`);
 
             let subtotal = 0;
             priceInputs.forEach((input, idx) => {
@@ -442,8 +590,20 @@
                 subtotal += price * qty;
             });
 
+            // Aplicar Condição Comercial no Recalculo Visual
+            let finalPrice = subtotal;
+            if (condicaoSelect && condicaoSelect.value) {
+                const opt = condicaoSelect.options[condicaoSelect.selectedIndex];
+                const valor = parseFloat(opt.getAttribute('data-valor'));
+                const tipo = opt.getAttribute('data-tipo');
+                const ajuste = (subtotal * valor) / 100;
+                
+                if (tipo === 'desconto') finalPrice -= ajuste;
+                else finalPrice += ajuste;
+            }
+
             document.getElementById(`subtotal-val-${id}`).innerText = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            document.getElementById(`recalc-total-${id}`).innerText = subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById(`recalc-total-${id}`).innerText = finalPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
 
@@ -474,6 +634,7 @@
             const titleInputs = form.querySelectorAll('input[name*="[title]"]');
             const specInputs = form.querySelectorAll('textarea[name*="[technical_specification]"]');
             const termosInput = document.getElementById(`termos-${id}`);
+            const condicaoInput = document.getElementById(`condicao-select-${id}`);
 
             const items = [];
             priceInputs.forEach((input, idx) => {
@@ -489,7 +650,11 @@
                 const response = await fetch(`${window.location.origin}/admin/orcamento/${id}/update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ items, termos_contrato: termosInput.value })
+                    body: JSON.stringify({ 
+                        items, 
+                        termos_contrato: termosInput.value,
+                        condicao_id: condicaoInput.value
+                    })
                 });
 
                 if (response.ok) {
@@ -527,6 +692,81 @@
             } catch (err) {
                 alert(`Erro: ${err.message}`);
             }
+        }
+
+        // --- LÓGICA DE CONDICÕES ---
+
+        function openCondicaoModal() {
+            document.getElementById('modal-condicao-title').innerText = 'Nova Condição Comercial';
+            document.getElementById('form-condicao').reset();
+            document.getElementById('cond-id').value = '';
+            document.getElementById('modal-condicao').style.display = 'flex';
+        }
+
+        function closeCondicaoModal() {
+            document.getElementById('modal-condicao').style.display = 'none';
+        }
+
+        function editCondicao(condStr) {
+            const cond = JSON.parse(condStr);
+            document.getElementById('modal-condicao-title').innerText = 'Editar Condição Comercial';
+            document.getElementById('cond-id').value = cond.id;
+            document.getElementById('cond-nome').value = cond.nome;
+            document.getElementById('cond-tipo').value = cond.tipo;
+            document.getElementById('cond-valor').value = cond.valor;
+            document.getElementById('cond-default').checked = cond.is_default;
+            document.getElementById('modal-condicao').style.display = 'flex';
+        }
+
+        async function saveCondicao() {
+            const id = document.getElementById('cond-id').value;
+            const payload = {
+                nome: document.getElementById('cond-nome').value,
+                tipo: document.getElementById('cond-tipo').value,
+                valor: document.getElementById('cond-valor').value,
+                is_default: document.getElementById('cond-default').checked
+            };
+
+            try {
+                const token = await getAuthenticatedToken();
+                const url = id ? `/admin/condicoes/${id}/update` : `/admin/condicoes`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    location.reload(); // Recarregar para atualizar a lista
+                } else {
+                    alert('Erro ao salvar condição.');
+                }
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function deleteCondicao(id) {
+            if (!confirm('Deseja excluir esta condição?')) return;
+            try {
+                const token = await getAuthenticatedToken();
+                const response = await fetch(`/admin/condicoes/${id}/delete`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) location.reload();
+            } catch (err) { alert(err.message); }
+        }
+
+        async function setDefaultCondicao(id) {
+            try {
+                const token = await getAuthenticatedToken();
+                const response = await fetch(`/admin/condicoes/${id}/set-default`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) location.reload();
+            } catch (err) { alert(err.message); }
         }
     </script>
 </body>

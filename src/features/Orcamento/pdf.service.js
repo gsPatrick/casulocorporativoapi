@@ -138,6 +138,23 @@ class PdfService {
     }
 
     const totalBudget = parseFloat(orcamento.total_price || 0);
+    const subtotal = parseFloat(orcamento.original_price || totalBudget);
+    
+    // Processar Condição (v5.0.0)
+    let condicaoFormatted = null;
+    let condicaoAjuste = 0;
+    
+    if (orcamento.condicao_json) {
+      const cond = orcamento.condicao_json;
+      const valor = parseFloat(cond.valor);
+      condicaoAjuste = (subtotal * valor) / 100;
+      
+      const sinal = cond.tipo === 'desconto' ? '-' : '+';
+      condicaoFormatted = {
+        label: `${cond.nome} (${valor}%)`,
+        valor_formatted: `${sinal} R$ ${condicaoAjuste.toFixed(2).replace('.', ',')}`
+      };
+    }
 
     return {
       id: orcamento.id,
@@ -154,6 +171,8 @@ class PdfService {
       can_see_prices: canSeePrices,
       short_code: orcamento.short_code,
       items,
+      condicao: condicaoFormatted,
+      subtotal_formatted: canSeePrices ? `R$ ${subtotal.toFixed(2).replace('.', ',')}` : 'Sob Consulta',
       termos_contrato: orcamento.termos_contrato || '',
       total_formatted: canSeePrices && totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir (Sob Consulta)'
     };
