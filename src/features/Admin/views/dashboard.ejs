@@ -439,7 +439,7 @@
                             </td>
                             <td style="font-weight: 600;"><%= cond.nome %></td>
                             <td>
-                                <span class="status-badge" style="background: <%= cond.tipo === 'desconto' ? '#fff' : '#000' %>; color: <%= cond.tipo === 'desconto' ? '#000' : '#fff' %>">
+                                <span class="status-badge" <%- cond.tipo === 'desconto' ? 'style="background: #fff; color: #000;"' : 'style="background: #000; color: #fff;"' %>>
                                     <%= cond.tipo %>
                                 </span>
                             </td>
