@@ -446,7 +446,7 @@
                             <td style="font-weight: 700;"><%= cond.valor %>%</td>
                             <td style="text-align: right;">
                                 <div style="display: inline-flex; gap: 10px;">
-                                    <button class="btn-black btn-outline" onclick="editCondicao('<%= JSON.stringify(cond) %>')"><i data-lucide="edit"></i></button>
+                                    <button class="btn-black btn-outline" onclick="editCondicao('<%= encodeURIComponent(JSON.stringify(cond)) %>')"><i data-lucide="edit"></i></button>
                                     <button class="btn-black btn-outline" onclick="deleteCondicao('<%= cond.id %>')" style="color: #c0392b;"><i data-lucide="trash-2"></i></button>
                                 </div>
                             </td>
@@ -708,7 +708,7 @@
         }
 
         function editCondicao(condStr) {
-            const cond = JSON.parse(condStr);
+            const cond = JSON.parse(decodeURIComponent(condStr));
             document.getElementById('modal-condicao-title').innerText = 'Editar Condição Comercial';
             document.getElementById('cond-id').value = cond.id;
             document.getElementById('cond-nome').value = cond.nome;
@@ -729,7 +729,7 @@
 
             try {
                 const token = await getAuthenticatedToken();
-                const url = id ? `/admin/condicoes/${id}/update` : `/admin/condicoes`;
+                const url = id ? `${window.location.origin}/admin/condicoes/${id}/update` : `${window.location.origin}/admin/condicoes`;
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -750,7 +750,7 @@
             if (!confirm('Deseja excluir esta condição?')) return;
             try {
                 const token = await getAuthenticatedToken();
-                const response = await fetch(`/admin/condicoes/${id}/delete`, {
+                const response = await fetch(`${window.location.origin}/admin/condicoes/${id}/delete`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -761,7 +761,7 @@
         async function setDefaultCondicao(id) {
             try {
                 const token = await getAuthenticatedToken();
-                const response = await fetch(`/admin/condicoes/${id}/set-default`, {
+                const response = await fetch(`${window.location.origin}/admin/condicoes/${id}/set-default`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

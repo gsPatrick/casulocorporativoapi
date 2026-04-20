@@ -331,6 +331,38 @@ class AdminController {
     }
   }
 
+  // ----------------------------------------------------
+  // Helper interno para aplicar update em massa de Condicao
+  // ----------------------------------------------------
+  async _applyCondicaoToAll(condicao) {
+    const allOrcamentos = await Orcamento.findAll();
+    const updatePromises = allOrcamentos.map(async (orc) => {
+      const subtotal = parseFloat(orc.original_price || orc.total_price || 0);
+      const valor = parseFloat(condicao.valor);
+      const ajuste = (subtotal * valor) / 100;
+      
+      let finalPrice = subtotal;
+      if (condicao.tipo === 'desconto') {
+        finalPrice -= ajuste;
+      } else {
+        finalPrice += ajuste;
+      }
+
+      return orc.update({
+        total_price: finalPrice,
+        condicao_json: {
+          id: condicao.id,
+          nome: condicao.nome,
+          tipo: condicao.tipo,
+          valor: valor
+        }
+      });
+    });
+
+    await Promise.all(updatePromises);
+    console.log(`[ADMIN BULK]: Atualização concluída para ${allOrcamentos.length} orçamentos.`);
+  }
+
   async updateCondicao(req, res) {
     try {
       const { id } = req.params;
@@ -347,8 +379,15 @@ class AdminController {
       }
 
       await condicao.update({ nome, tipo, valor, is_default: !!is_default });
+
+      // Se a condição atualizada é a padrão, ou se tornou a padrão, deve refletir em todos
+      if (condicao.is_default) {
+        await this._applyCondicaoToAll(condicao);
+      }
+
       res.json(condicao);
     } catch (error) {
+      console.error('[ADMIN CONTROLLER]: Erro ao atualizar condição', error);
       res.status(500).json({ error: 'Erro ao atualizar condição' });
     }
   }
@@ -386,32 +425,7 @@ class AdminController {
       await condicao.update({ is_default: true });
 
       // 3. ATUALIZAÇÃO EM MASSA: Aplicar a todos os orçamentos (v5.1.0)
-      const allOrcamentos = await Orcamento.findAll();
-      const updatePromises = allOrcamentos.map(async (orc) => {
-        const subtotal = parseFloat(orc.original_price || orc.total_price || 0);
-        const valor = parseFloat(condicao.valor);
-        const ajuste = (subtotal * valor) / 100;
-        
-        let finalPrice = subtotal;
-        if (condicao.tipo === 'desconto') {
-          finalPrice -= ajuste;
-        } else {
-          finalPrice += ajuste;
-        }
-
-        return orc.update({
-          total_price: finalPrice,
-          condicao_json: {
-            id: condicao.id,
-            nome: condicao.nome,
-            tipo: condicao.tipo,
-            valor: valor
-          }
-        });
-      });
-
-      await Promise.all(updatePromises);
-      console.log(`[ADMIN CONTROLLER]: Atualização em massa concluída para ${allOrcamentos.length} orçamentos.`);
+      await this._applyCondicaoToAll(condicao);
 
       res.json({ success: true });
     } catch (error) {
