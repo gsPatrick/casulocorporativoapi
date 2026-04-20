@@ -87,13 +87,21 @@ class OrcamentoService {
     console.log(`[${new Date().toISOString()}] [SERVICE]: Extração de Base64 concluída em ${Date.now() - startService}ms`);
 
     const dbStart = Date.now();
+    const customerName = data.customer_metadata?.name || 
+                        (data.customer_metadata?.first_name ? `${data.customer_metadata.first_name} ${data.customer_metadata.last_name || ''}`.trim() : null) ||
+                        data.customer_name || 
+                        (data.lead?.nome ? `${data.lead.nome} ${data.lead.sobrenome || ''}`.trim() : null) || 
+                        (data.customer_id ? 'Cliente Shopify' : 'Visitante');
+
+    const customerEmail = data.customer_metadata?.email || data.customer_email || data.lead?.email || null;
+
     const orcamento = await Orcamento.create({
       id: orcamentoId,
       shopify_customer_id: data.customer_id ? data.customer_id.toString() : null,
       customer_type: data.customer_id ? 'logado' : 'convidado',
-      customer_name: data.customer_name || (data.lead?.nome ? `${data.lead.nome} ${data.lead.sobrenome || ''}`.trim() : null) || (data.customer_id ? 'Cliente Shopify' : 'Visitante'),
-      customer_email: data.customer_email || data.lead?.email || null,
-      customer_phone: data.customer_phone || data.lead?.whatsapp || null,
+      customer_name: customerName,
+      customer_email: customerEmail,
+      customer_phone: data.customer_phone || data.lead?.whatsapp || data.customer_metadata?.phone || null,
       lead_json: data.lead || null,
       line_items_json: finalItems,
       total_price: finalLiquidPrice,
