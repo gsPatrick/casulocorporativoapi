@@ -76,20 +76,35 @@ class PdfService {
       logoBase64 = fs.readFileSync(logoPath).toString('base64');
     }
 
-    // Determinar se o usuário pode ver preços baseados nas tags (v4.6.0 - Robust Check)
+    // Processar Fator de Ajuste Comercial (v5.5.0 - Hidden Condition)
+    let adjustmentFactor = 1;
+    if (orcamento.condicao_json) {
+      const v = parseFloat(orcamento.condicao_json.valor);
+      adjustmentFactor = orcamento.condicao_json.tipo === 'desconto' ? (1 - v/100) : (1 + v/100);
+      console.log(`[PDF SERVICE]: Diluindo Condição (${orcamento.condicao_json.tipo}: ${v}%) nos itens.`);
+    }
+
+    // Determinar visibilidade de preços (v5.5.0 - Robust Check)
+    const totalBudget = parseFloat(orcamento.total_price || 0);
     const tagsRaw = orcamento.customer_tags || [];
     const tagsText = Array.isArray(tagsRaw) ? tagsRaw.join('|') : String(tagsRaw);
     const tagsLower = tagsText.toLowerCase();
     
-    // Busca por termos exatos ou parciais nas tags
-    const canSeePrices = tagsLower.includes('aprovado') || 
-                         tagsLower.includes('cadastrado') || 
-                         tagsLower.includes('acesso-temporario') ||
-                         tagsLower.includes('acesso_temporario');
+    // Se o orçamento já tem preço total definido, LIBERA a visualização no PDF
+    let canSeePrices = totalBudget > 0;
+    
+    if (!canSeePrices) {
+      canSeePrices = tagsLower.includes('aprovado') || 
+                     tagsLower.includes('cadastrado') || 
+                     tagsLower.includes('acesso-temporario') ||
+                     tagsLower.includes('acesso_temporario');
+    }
 
     // Processar cada item do orçamento
     for (const item of orcamento.line_items_json) {
-      let imageBase64 = item.custom_image_base64 || null; // Suporte para mock direto
+      let imageBase64 = item.custom_image_base64 || null;
+
+      // ... (lógica de imagem mantida) ...
 
       // ... existing image processing logic ...
       if (item.custom_image && item.custom_image.startsWith('data:image')) {
@@ -122,7 +137,7 @@ class PdfService {
         rawPrice = rawPrice.replace(/[^\d.,]/g, '').replace(',', '.');
       }
       
-      const unitPrice = parseFloat(rawPrice || 0);
+      const unitPrice = parseFloat(rawPrice || 0) * adjustmentFactor;
       const totalItem = unitPrice * (item.quantity || 1);
 
       // Regra de Ouro: Se não pode ver preços, mostramos 'Sob Consulta'
@@ -137,25 +152,8 @@ class PdfService {
       });
     }
 
-    const totalBudget = parseFloat(orcamento.total_price || 0);
-    const subtotal = parseFloat(orcamento.original_price || totalBudget);
+    const subtotal = parseFloat(orcamento.original_price || orcamento.total_price || 0) * adjustmentFactor;
     
-    // Processar Condição (v5.0.0)
-    let condicaoFormatted = null;
-    let condicaoAjuste = 0;
-    
-    if (orcamento.condicao_json) {
-      const cond = orcamento.condicao_json;
-      const valor = parseFloat(cond.valor);
-      condicaoAjuste = (subtotal * valor) / 100;
-      
-      const sinal = cond.tipo === 'desconto' ? '-' : '+';
-      condicaoFormatted = {
-        label: `${cond.nome} (${valor}%)`,
-        valor_formatted: `${sinal} R$ ${condicaoAjuste.toFixed(2).replace('.', ',')}`
-      };
-    }
-
     return {
       id: orcamento.id,
       date: new Date(orcamento.createdAt).toLocaleDateString('pt-BR'),
@@ -173,7 +171,7 @@ class PdfService {
       can_see_prices: canSeePrices,
       short_code: orcamento.short_code,
       items,
-      condicao: condicaoFormatted,
+      condicao: null, // Ocultar do template (v5.5.0)
       subtotal_formatted: canSeePrices ? `R$ ${subtotal.toFixed(2).replace('.', ',')}` : 'Sob Consulta',
       termos_contrato: orcamento.termos_contrato || '',
       total_formatted: canSeePrices && totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir (Sob Consulta)'

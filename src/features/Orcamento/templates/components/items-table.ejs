@@ -76,14 +76,6 @@
 </div>
 
 <div style="margin-top: 15px; border-top: 2px solid #eee; padding-top: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
-    <% if (condicao) { %>
-        <div style="font-size: 11px; color: #666;">
-            SUBTOTAL: <strong><%= subtotal_formatted %></strong>
-        </div>
-        <div style="font-size: 11px; color: #666;">
-            <%= condicao.label.toUpperCase() %>: <strong style="color: <%= condicao.valor_formatted.includes('-') ? '#c0392b' : '#27ae60' %>;"><%= condicao.valor_formatted %></strong>
-        </div>
-    <% } %>
     <div style="margin-top: 5px; border-top: 3px solid #000; padding-top: 8px; width: 350px; text-align: right;">
         <div style="font-size: 16px; font-weight: bold; color: #000; letter-spacing: 1px;">
             VALOR TOTAL DA PROPOSTA: <%= total_formatted %>
