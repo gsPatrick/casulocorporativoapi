@@ -66,26 +66,40 @@
 
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 10px; line-height: 1.4; color: #333;">
             <!-- CLIENT INFO -->
-            <div style="border: 1px solid #eee; padding: 10px 12px; flex: 1; margin-right: 15px;">
-                <strong style="color: #000; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 3px;">Para:</strong>
-                <% if (customer_name) { %>
-                    <span style="font-weight: bold;"><%= customer_name %></span><br>
+            <div style="border: 1px solid #eee; padding: 12px 15px; flex: 1; margin-right: 15px; line-height: 1.6;">
+                <strong style="color: #000; text-transform: uppercase; font-size: 11px; display: block; margin-bottom: 8px; border-bottom: 1px solid #f5f5f5; padding-bottom: 5px;">Para:</strong>
+                
+                <!-- Identificação -->
+                <div style="margin-bottom: 10px;">
+                    <% if (customer_name) { %>
+                        <span style="font-weight: bold; font-size: 13px; color: #000;"><%= customer_name %></span><br>
+                    <% } %>
+                    <% if (customer_email || customer_whatsapp) { %>
+                        <span style="color: #666; font-size: 10px;">
+                            <%= customer_email %> <%= customer_whatsapp ? '| ' + customer_whatsapp : '' %>
+                        </span>
+                    <% } %>
+                </div>
+
+                <!-- Empresa e Documentos -->
+                <% if (customer_company || customer_cnpj) { %>
+                    <div style="margin-bottom: 10px; border-top: 1px solid #fafafa; padding-top: 5px;">
+                        <% if (customer_company) { %>
+                            <span style="text-transform: uppercase; font-size: 10px; font-weight: bold;"><%= customer_company %></span><br>
+                        <% } %>
+                        <% if (customer_cnpj) { %>
+                            <span style="color: #444; font-size: 10px;">CNPJ: <%= customer_cnpj %></span>
+                        <% } %>
+                    </div>
                 <% } %>
-                <% if (customer_company) { %>
-                    <%= customer_company %><br>
-                <% } %>
-                <% if (customer_cnpj) { %>
-                    CNPJ: <%= customer_cnpj %><br>
-                <% } %>
-                <% if (customer_address) { %>
-                    <%= customer_address %><br>
-                <% } %>
-                <% if (customer_cep) { %>
-                    CEP: <%= customer_cep %><br>
-                <% } %>
-                <% if (customer_email || customer_whatsapp) { %>
-                    <div style="margin-top: 5px; color: #666; font-size: 9px;">
-                        <%= customer_email %> <%= customer_whatsapp ? '| ' + customer_whatsapp : '' %>
+
+                <!-- Endereço -->
+                <% if (customer_address || customer_cep) { %>
+                    <div style="border-top: 1px solid #fafafa; padding-top: 5px;">
+                        <span style="color: #666; font-size: 10px;">
+                            <%= customer_address %><br>
+                            <%= customer_cep ? 'CEP: ' + customer_cep : '' %>
+                        </span>
                     </div>
                 <% } %>
             </div>
