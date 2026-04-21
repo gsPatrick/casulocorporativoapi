@@ -19,4 +19,7 @@ router.post('/condicoes/:id/update', adminController.updateCondicao.bind(adminCo
 router.post('/condicoes/:id/delete', adminController.deleteCondicao.bind(adminController));
 router.post('/condicoes/:id/set-default', adminController.setDefaultCondicao.bind(adminController));
 
+// Rota Temporária de Debug para Metacampos do Produto
+router.get('/debug/metafields/:product_id', adminController.debugMetafields.bind(adminController));
+
 module.exports = router;
