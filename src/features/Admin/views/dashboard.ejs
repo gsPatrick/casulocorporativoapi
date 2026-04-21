@@ -464,7 +464,7 @@
     </div>
 
     <!-- ABA TESTES (DEBUG DE PRODUTOS E API) -->
-    <div id="tab-testes" class="tab-content" style="display: none;">
+    <div id="tab-testes" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Debug do Shopify (Admin API)</h2>
         </div>
@@ -540,7 +540,8 @@
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
-            event.target.classList.add('active');
+            const btn = event.currentTarget || event.target.closest('.tab-btn') || event.target;
+            if (btn) btn.classList.add('active');
             document.getElementById(tabId).classList.add('active');
             if (tabId === 'tab-condicoes') lucide.createIcons();
         }
