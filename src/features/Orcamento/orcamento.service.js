@@ -246,10 +246,10 @@ class OrcamentoService {
     const accessToken = process.env.SHOPIFY_ACCESS_TOKEN || process.env.SHOPIFY_API_SECRET; // Usando o que estiver disponível
 
     return await Promise.all(items.map(async (item) => {
-      let especificacao_generica = null;
+      let especificacao_generica = item.especificacao_generica || null;
 
-      // Buscar Metafield do Shopify se houver product_id
-      if (item.product_id && accessToken) {
+      // Buscar Metafield do Shopify via API somente se o frontend não tiver fornecido (Fallback)
+      if (!especificacao_generica && item.product_id && accessToken) {
         try {
           const productId = item.product_id.toString().replace('gid://shopify/Product/', '');
           const response = await axios({
