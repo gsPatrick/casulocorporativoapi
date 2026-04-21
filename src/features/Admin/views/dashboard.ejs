@@ -193,7 +193,6 @@
     <div class="tabs-container">
         <button class="tab-btn active" onclick="switchTab('tab-orcamentos')">Orçamentos</button>
         <button class="tab-btn" onclick="switchTab('tab-condicoes')">Condições Comerciais</button>
-        <button class="tab-btn" onclick="switchTab('tab-testes')"><i data-lucide="terminal" style="width: 14px; margin-right: 5px; vertical-align: middle;"></i> Testes API</button>
     </div>
 
     <!-- ABA ORÇAMENTOS -->
@@ -460,26 +459,6 @@
                     <% } %>
                 </tbody>
             </table>
-        </div>
-    </div>
-
-    <!-- ABA TESTES (DEBUG DE PRODUTOS E API) -->
-    <div id="tab-testes" class="tab-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 style="font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Debug do Shopify (Admin API)</h2>
-        </div>
-
-        <div class="polaris-card" style="padding: 20px;">
-            <p style="font-size: 13px; color: #555; margin-bottom: 20px;">Insira o ID de um produto Shopify para capturar seus metadados brutos pela Admin API.</p>
-            
-            <div style="display: flex; gap: 15px; max-width: 600px; margin-bottom: 20px;">
-                <input type="text" id="debug-product-id" class="input-premium" placeholder="Ex: 42294882762838">
-                <button class="btn-black" onclick="runMetafieldDebug(this)">Buscar Metacampos</button>
-            </div>
-
-            <div style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 4px; overflow-x: auto; min-height: 200px;">
-                <pre id="debug-json-output" style="font-family: monospace; font-size: 12px; margin: 0; white-space: pre-wrap;">Aguardando execução...</pre>
-            </div>
         </div>
     </div>
 
@@ -789,29 +768,6 @@
                 });
                 if (response.ok) location.reload();
             } catch (err) { alert(err.message); }
-        }
-
-        async function runMetafieldDebug(btn) {
-            const pid = document.getElementById('debug-product-id').value;
-            const output = document.getElementById('debug-json-output');
-            
-            if (!pid) { alert('Digite um ID de Produto válido.'); return; }
-            
-            output.innerText = 'Processando e autenticando via Shopify Admin API...';
-            btn.disabled = true;
-
-            try {
-                const token = await getAuthenticatedToken();
-                const response = await fetch(`${window.location.origin}/admin/debug/metafields/${pid.trim()}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const json = await response.json();
-                output.innerText = JSON.stringify(json, null, 2);
-            } catch (err) {
-                output.innerText = 'ERRO DE CONEXÃO: ' + err.message;
-            } finally {
-                btn.disabled = false;
-            }
         }
     </script>
 </body>

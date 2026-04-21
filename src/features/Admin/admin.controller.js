@@ -433,33 +433,6 @@ class AdminController {
       res.status(500).json({ error: 'Erro ao processar atualização em massa' });
     }
   }
-
-  // ----------------------------------------------------
-  // DEBUG DE PRODUTO: Helper Tooling 
-  // ----------------------------------------------------
-  async debugMetafields(req, res) {
-    try {
-      const { product_id } = req.params;
-      const axios = require('axios');
-      const shop = process.env.SHOPIFY_SHOP || 'casulo-corporativa.myshopify.com';
-      const accessToken = process.env.SHOPIFY_ACCESS_TOKEN || process.env.SHOPIFY_API_SECRET;
-
-      const response = await axios({
-        url: `https://${shop}/admin/api/2024-01/products/${product_id}/metafields.json`,
-        method: 'GET',
-        headers: {
-          'X-Shopify-Access-Token': accessToken,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.send(JSON.stringify(response.data.metafields, null, 2));
-
-    } catch (error) {
-      res.status(500).json({ error: error.message, details: error.response?.data });
-    }
-  }
 }
 
 module.exports = new AdminController();
