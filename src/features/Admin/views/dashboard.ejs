@@ -501,17 +501,19 @@
     <script>
         lucide.createIcons();
         
+        const AppBridgeUtils = window['app-bridge-utils'];
+        const getSessionToken = AppBridgeUtils.getSessionToken;
+
         async function getAuthenticatedToken() {
             try {
-                if (window.shopify && typeof window.shopify.idToken === 'function') {
-                    return await window.shopify.idToken();
-                }
-                const urlParams = new URLSearchParams(window.location.search);
-                const idToken = urlParams.get('id_token') || urlParams.get('session');
-                return idToken;
+                // v11.0.0+: Forçar refresh dinâmico via App Bridge Utils
+                const token = await getSessionToken(app);
+                return token;
             } catch (err) {
-                console.error('[AUTH ERROR]:', err);
-                return new URLSearchParams(window.location.search).get('id_token');
+                console.error('[AUTH ERROR]: Falha ao buscar Session Token:', err);
+                // Fallback de emergência para URL (Só funciona nos primeiros 60s)
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('id_token') || urlParams.get('session');
             }
         }
 

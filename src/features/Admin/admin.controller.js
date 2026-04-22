@@ -209,13 +209,18 @@ class AdminController {
       }
 
       // 2. Decodificar o Token para obter Shop e User (v11+ padrão)
-      // Se loadSession falhar na memória, o decodeSessionToken ainda nos dá a identidade.
       let payload;
       try {
         payload = await shopify.session.decodeSessionToken(sessionToken);
       } catch (err) {
         console.error('[ADMIN AUTH]: Erro ao decodificar JWT:', err.message);
-        res.status(401).send('Token inválido ou expirado');
+        
+        // Se o erro for expiração, logamos com destaque para identificar clock drift
+        if (err.message.includes('expired')) {
+            console.warn('[ADMIN AUTH]: Token expirado detectado. Verifique a sincronia do relógio do servidor.');
+        }
+
+        res.status(401).json({ error: 'Token inválido ou expirado', message: err.message });
         return null;
       }
 
