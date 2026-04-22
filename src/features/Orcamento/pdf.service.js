@@ -37,7 +37,7 @@ class PdfService {
         return await page.pdf({
           format: 'A4',
           printBackground: true,
-          margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' },
+          margin: { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' },
           displayHeaderFooter: false
         });
       } finally {
