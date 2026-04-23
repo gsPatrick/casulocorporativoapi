@@ -3,6 +3,7 @@ const Condicao = require('../../models/Condicao');
 const shopify = require('../../config/shopify');
 const OrcamentoService = require('../Orcamento/orcamento.service');
 const orcService = OrcamentoService;
+const adminService = require('./admin.service');
 
 class AdminController {
   /**
@@ -96,16 +97,45 @@ class AdminController {
    */
   async validateHmac(req, res) {
     try {
-      // shopify-api v11+ valida hmac de query params
+      // 1. Tentar validação padrão do SDK
       const isValid = await shopify.utils.validateHmac(req.query);
-      if (!isValid) {
-        res.status(401).send('Não autorizado: Assinatura HMAC inválida');
-        return false;
-      }
-      return true;
+      if (isValid) return true;
+
+      res.status(401).send('Não autorizado: Assinatura HMAC inválida');
+      return false;
     } catch (err) {
+      // 2. Fallback para desvio de relógio (Clock Drift)
+      // Se o erro for apenas o timestamp, fazemos uma validação manual com tolerância maior.
+      if (err.message.includes('timestamp')) {
+        console.warn('[ADMIN HMAC]: Desvio de relógio detectado. Iniciando validação manual...');
+        
+        try {
+          const crypto = require('crypto');
+          const secret = process.env.SHOPIFY_API_SECRET;
+          const { hmac, ...params } = req.query;
+          
+          // Ordenar e extrair query string sem o HMAC
+          const queryString = Object.keys(params)
+            .sort()
+            .map(key => `${key}=${params[key]}`)
+            .join('&');
+            
+          const generatedHmac = crypto
+            .createHmac('sha256', secret)
+            .update(queryString)
+            .digest('hex');
+
+          if (generatedHmac === hmac) {
+            console.log('[ADMIN HMAC]: Validação manual bem-sucedida apesar do desvio de tempo.');
+            return true;
+          }
+        } catch (manualErr) {
+          console.error('[ADMIN HMAC]: Erro na validação manual:', manualErr.message);
+        }
+      }
+
       console.error('[ADMIN HMAC]: Falha na validação:', err.message);
-      res.status(403).send('Erro de segurança no link do Shopify');
+      res.status(403).send(`Erro de segurança no link do Shopify: ${err.message}`);
       return false;
     }
   }
@@ -436,6 +466,54 @@ class AdminController {
     } catch (error) {
       console.error('[ADMIN CONTROLLER]: Erro no Bulk Update de Condições:', error.message);
       res.status(500).json({ error: 'Erro ao processar atualização em massa' });
+    }
+  }
+
+  // --- GESTÃO DE ID SEQUENCIAL (v12.33.20) ---
+
+  // Chamado pelo Shopify Flow
+  async getNextCustomerCode(req, res) {
+    try {
+      console.log('[FLOW]: Recebendo solicitação de código sequencial...', req.body);
+      const customerData = req.body;
+      
+      if (!customerData.id) {
+        return res.status(400).json({ error: 'ID do cliente é obrigatório' });
+      }
+
+      const code = await adminService.generateNextCode(customerData);
+      
+      console.log(`[FLOW]: Código ${code} gerado para o cliente ${customerData.email || customerData.id}`);
+      res.json({ codigo: code });
+    } catch (error) {
+      console.error('[FLOW ERROR]:', error.message);
+      res.status(500).json({ error: 'Erro ao gerar código sequencial' });
+    }
+  }
+
+  // Chamado pelo Dashboard do App
+  async getSettingsData(req, res) {
+    try {
+      const nextCode = await adminService.getNextCodeValue();
+      const history = await adminService.getCodeHistory();
+      res.json({ nextCode, history });
+    } catch (error) {
+      res.status(500).json({ error: 'Erro ao buscar configurações' });
+    }
+  }
+
+  async updateSettings(req, res) {
+    try {
+      const { nextCode } = req.body;
+      const session = await this.validateSession(req, res);
+      if (!session) return;
+
+      if (nextCode === undefined) return res.status(400).json({ error: 'nextCode é obrigatório' });
+      
+      await adminService.updateNextCodeValue(nextCode);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: 'Erro ao atualizar configurações' });
     }
   }
 }

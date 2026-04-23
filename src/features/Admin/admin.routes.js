@@ -16,7 +16,11 @@ router.post('/orcamento/:id/update', adminController.updateOrcamento.bind(adminC
 router.get('/condicoes', adminController.listCondicoes.bind(adminController));
 router.post('/condicoes', adminController.createCondicao.bind(adminController));
 router.post('/condicoes/:id/update', adminController.updateCondicao.bind(adminController));
-router.post('/condicoes/:id/delete', adminController.deleteCondicao.bind(adminController));
 router.post('/condicoes/:id/set-default', adminController.setDefaultCondicao.bind(adminController));
+
+// Gestão de IDs Sequenciais (v12.33.20)
+router.post('/flow/next-code', adminController.getNextCustomerCode.bind(adminController));
+router.get('/settings/data', adminController.getSettingsData.bind(adminController));
+router.post('/settings/update', adminController.updateSettings.bind(adminController));
 
 module.exports = router;

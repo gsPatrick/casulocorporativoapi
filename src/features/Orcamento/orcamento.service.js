@@ -434,6 +434,12 @@ class OrcamentoService {
  
         fs.writeFileSync(filePath, croppedBuffer);
         
+        if (fs.existsSync(filePath)) {
+          console.log(`[ORCAMENTO SERVICE]: ✅ Imagem salva com sucesso: ${fileName} (${croppedBuffer.length} bytes)`);
+        } else {
+          console.error(`[ORCAMENTO SERVICE]: ❌ Falha ao verificar arquivo salvo: ${fileName}`);
+        }
+        
         let appUrl = process.env.APP_URL || 'http://localhost:3000';
         if (appUrl.endsWith('/')) appUrl = appUrl.slice(0, -1);
         console.log(`[ORCAMENTO SERVICE]: Imagem salva e trimmada: ${fileName} (${croppedBuffer.length} bytes)`);

@@ -12,6 +12,8 @@ require('./src/models/Orcamento');
 require('./src/models/SyncQueue');
 require('./src/models/CartItem');
 require('./src/models/Condicao');
+require('./src/models/Setting');
+require('./src/models/CustomerCodeHistory');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -49,16 +51,11 @@ app.use('/', routes); // Garante que a raiz do domínio também responda (Shopif
 
 // Sincronizar Banco e Iniciar Servidor
 const startServer = async () => {
-  // Limpeza de emergência/teste: Remove imagens temporárias no startup
-  try {
-    const imagesDir = path.join(__dirname, 'src/temp/images');
-    if (fs.existsSync(imagesDir)) {
-      const files = fs.readdirSync(imagesDir);
-      files.forEach(file => { if (file !== '.gitkeep') fs.unlinkSync(path.join(imagesDir, file)); });
-      console.log(`🧹 Limpeza completa: ${files.length} imagens removidas do cache.`);
-    }
-  } catch (e) {
-    console.warn('⚠️ Falha na limpeza de startup:', e.message);
+  // Verificação de diretório de imagens (v12.33.15)
+  const imagesDir = path.join(__dirname, 'src/temp/images');
+  if (!fs.existsSync(imagesDir)) {
+    fs.mkdirSync(imagesDir, { recursive: true });
+    console.log('📁 Diretório de imagens temporárias criado.');
   }
 
   try {

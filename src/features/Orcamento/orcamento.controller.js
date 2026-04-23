@@ -130,6 +130,7 @@ class OrcamentoController {
       }
 
       // Processar e salvar no disco (Isso atualiza o DB também)
+      console.log(`[CONTROLLER]: Salvando ${Object.keys(base64Map).length} snapshots para orçamento ${id}`);
       await orcamentoService.saveBase64ImagesAfterCreation(id, base64Map);
 
       console.log(`[${new Date().toISOString()}] <<< [CONTROLLER]: Snapshots processados em ${Date.now() - startTime}ms`);
