@@ -494,12 +494,45 @@ class AdminController {
     }
   }
 
+  // Novo Endpoint para Atualização Completa + Log de Origem (v12.33.30)
+  async updateCustomerFromFlow(req, res) {
+    try {
+      console.log('[FLOW UPDATE]: Recebendo submissão de formulário...', req.body);
+      
+      // Processa a submissão, gera código e loga tudo
+      const code = await adminService.processFlowSubmission(req.body);
+      
+      console.log(`[FLOW UPDATE]: Cliente ${req.body.email} processado via Form ${req.body.form_id || 'N/A'}. Código Gerado: ${code}`);
+      
+      // O agente do Shopify pediu retorno 200 OK sem body, 
+      // mas vamos enviar o código no Header ou deixar que o Flow use o endpoint de 'next-code' se precisar.
+      // Aqui enviamos apenas OK conforme solicitado.
+      res.set('X-Generated-Code', code);
+      res.status(200).send(code.toString()); // Envia o código como texto puro também, por segurança
+    } catch (error) {
+      console.error('[FLOW UPDATE ERROR]:', error.message);
+      res.status(500).send('Erro interno');
+    }
+  }
+
   // Chamado pelo Dashboard do App
   async getSettingsData(req, res) {
     try {
+      const limit = parseInt(req.query.limit) || 20;
+      const offset = parseInt(req.query.offset) || 0;
+
       const nextCode = await adminService.getNextCodeValue();
-      const history = await adminService.getCodeHistory();
-      res.json({ nextCode, history });
+      const { count, rows: history } = await adminService.getCodeHistory(limit, offset);
+      
+      res.json({ 
+        nextCode, 
+        history,
+        pagination: {
+          total: count,
+          limit,
+          offset
+        }
+      });
     } catch (error) {
       res.status(500).json({ error: 'Erro ao buscar configurações' });
     }

@@ -774,11 +774,14 @@
         }
 
         // --- LÓGICA DE CONFIGURAÇÕES (ID SEQUENCIAL) ---
+        let currentOffset = 0;
+        const historyLimit = 20;
 
-        async function loadSettings() {
+        async function loadSettings(offset = 0) {
+            currentOffset = offset;
             try {
                 const token = await getAuthenticatedToken();
-                const response = await fetch(`${window.location.origin}/admin/settings/data`, {
+                const response = await fetch(`${window.location.origin}/admin/settings/data?limit=${historyLimit}&offset=${offset}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await response.json();
@@ -786,20 +789,51 @@
                 if (data) {
                     document.getElementById('next-code-input').value = data.nextCode;
                     const historyBody = document.getElementById('history-table-body');
-                    historyBody.innerHTML = data.history.map(entry => `
+                    historyBody.innerHTML = data.history.map(entry => {
+                        const isPF = entry.form_id === '958410';
+                        const formLabel = isPF ? 'PF (CLIENTE)' : (entry.form_id === '959419' ? 'PJ (COPORATIVO)' : 'OUTRO');
+                        const formColor = isPF ? '#000' : '#2e7d32';
+                        
+                        const meta = entry.metadata || {};
+                        const extraInfo = [];
+                        if (meta.cnpj) extraInfo.push(`CNPJ: ${meta.cnpj}`);
+                        if (meta.company) extraInfo.push(`Empresa: ${meta.company}`);
+                        if (meta.segmento) extraInfo.push(`Segmento: ${meta.segmento}`);
+                        if (meta.cep) extraInfo.push(`CEP: ${meta.cep}`);
+
+                        return `
                         <tr>
-                            <td style="font-weight: 500;">${new Date(entry.createdAt).toLocaleString('pt-BR')}</td>
-                            <td style="font-weight: 700;">${entry.generated_code}</td>
-                            <td>${entry.customer_name || 'Desconhecido'}</td>
-                            <td style="color: #666;">${entry.customer_email || 'N/A'}</td>
-                            <td style="font-family: monospace; font-size: 11px; color: #999;">${entry.shopify_customer_id}</td>
+                            <td style="font-weight: 500;">
+                                <div style="font-size: 11px; color: #999;">${new Date(entry.createdAt).toLocaleDateString('pt-BR')}</div>
+                                <div style="font-size: 11px; color: #999;">${new Date(entry.createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</div>
+                            </td>
+                            <td style="font-weight: 700; font-size: 15px;">${entry.generated_code}</td>
+                            <td>
+                                <div style="font-weight: 700; text-transform: uppercase;">${entry.customer_name || 'Desconhecido'}</div>
+                                <div style="font-size: 11px; color: #666;">${entry.customer_email || 'N/A'}</div>
+                            </td>
+                            <td>
+                                <span style="font-size: 9px; padding: 2px 6px; border: 1px solid ${formColor}; color: ${formColor}; font-weight: 800;">${formLabel}</span>
+                            </td>
+                            <td style="font-size: 11px; color: #666; line-height: 1.4;">
+                                ${extraInfo.length > 0 ? extraInfo.join('<br>') : '<span style="color: #ccc;">Nenhum dado extra</span>'}
+                            </td>
                         </tr>
-                    `).join('') || '<tr><td colspan="5" style="text-align: center; color: #999; padding: 40px;">Nenhum histórico encontrado ainda.</td></tr>';
+                    `}).join('') || '<tr><td colspan="5" style="text-align: center; color: #999; padding: 40px;">Nenhum histórico encontrado ainda.</td></tr>';
+
+                    // Atualizar paginação
+                    const total = data.pagination.total;
+                    document.getElementById('pagination-info').innerText = `Mostrando ${offset + 1}-${Math.min(offset + historyLimit, total)} de ${total}`;
+                    document.getElementById('btn-prev').disabled = offset === 0;
+                    document.getElementById('btn-next').disabled = (offset + historyLimit) >= total;
                 }
             } catch (err) {
                 console.error('Erro ao carregar configurações:', err);
             }
         }
+
+        function nextHistoryPage() { loadSettings(currentOffset + historyLimit); }
+        function prevHistoryPage() { loadSettings(Math.max(0, currentOffset - historyLimit)); }
 
         async function saveSettings() {
             const nextCode = document.getElementById('next-code-input').value;
@@ -819,6 +853,7 @@
 
                 if (response.ok) {
                     alert('Configurações salvas com sucesso!');
+                    loadSettings(currentOffset);
                 } else {
                     alert('Erro ao salvar as configurações.');
                 }
@@ -844,34 +879,43 @@
             <!-- Painel Esquerdo: Configuração do Contador -->
             <div>
                 <div class="polaris-card" style="padding: 25px;">
-                    <h3 style="text-transform: uppercase; font-weight: 800; font-size: 14px; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px;">ID Sequencial de Clientes</h3>
-                    <p style="font-size: 13px; color: #666; margin-bottom: 25px;">Defina abaixo qual será o próximo número de ID atribuído automaticamente a um novo cliente B2B.</p>
+                    <h3 style="text-transform: uppercase; font-weight: 800; font-size: 14px; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px;">ID Sequencial B2B</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 25px;">Defina o próximo número de ID atribuído automaticamente.</p>
                     
                     <div style="margin-bottom: 25px;">
-                        <label class="label-premium">Próximo ID (Contador)</label>
+                        <label class="label-premium">Próximo ID</label>
                         <input type="number" id="next-code-input" class="input-premium" style="font-size: 18px; font-weight: 800; text-align: center;" placeholder="Ex: 1280">
                     </div>
 
-                    <button class="btn-black" style="width: 100%; height: 50px;" onclick="saveSettings()">Salvar Configuração</button>
+                    <button class="btn-black" style="width: 100%; height: 50px;" onclick="saveSettings()">Salvar Contador</button>
                     
                     <div style="margin-top: 20px; padding: 15px; background: #fafafa; border: 1px dashed #ccc; font-size: 11px; color: #666;">
-                        <strong>Dica:</strong> Se você definir como 1280, o próximo cliente a finalizar o cadastro ganhará este número, e o próximo será 1281.
+                        <strong>Dica:</strong> Se você definir como 1280, o próximo cliente a finalizar o cadastro ganhará este número.
                     </div>
                 </div>
             </div>
 
-            <!-- Painel Direito: Histórico -->
+            <!-- Painel Direito: Histórico Expandido -->
             <div class="polaris-card">
-                <h3 style="text-transform: uppercase; font-weight: 800; font-size: 14px; padding: 20px; border-bottom: 1px solid #000; margin: 0;">Histórico de Atribuições</h3>
-                <div style="max-height: 500px; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #000;">
+                    <h3 style="text-transform: uppercase; font-weight: 800; font-size: 14px; margin: 0;">Histórico de Atribuições</h3>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span id="pagination-info" style="font-size: 11px; color: #666; font-weight: 600;"></span>
+                        <div style="display: flex; gap: 5px;">
+                            <button id="btn-prev" class="btn-black btn-outline" style="padding: 5px 10px;" onclick="prevHistoryPage()"><i data-lucide="chevron-left"></i></button>
+                            <button id="btn-next" class="btn-black btn-outline" style="padding: 5px 10px;" onclick="nextHistoryPage()"><i data-lucide="chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div style="min-height: 400px;">
                     <table>
                         <thead>
                             <tr>
-                                <th>Data/Hora</th>
-                                <th>ID Gerado</th>
+                                <th style="width: 100px;">Data/Hora</th>
+                                <th style="width: 80px;">ID</th>
                                 <th>Cliente</th>
-                                <th>E-mail</th>
-                                <th>Shopify ID</th>
+                                <th style="width: 120px;">Origem</th>
+                                <th>Dados Extras</th>
                             </tr>
                         </thead>
                         <tbody id="history-table-body">

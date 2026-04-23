@@ -23,6 +23,10 @@ const CustomerCodeHistory = sequelize.define('CustomerCodeHistory', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  form_id: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   metadata: {
     type: DataTypes.JSONB,
     allowNull: true

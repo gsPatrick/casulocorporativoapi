@@ -20,6 +20,7 @@ router.post('/condicoes/:id/set-default', adminController.setDefaultCondicao.bin
 
 // Gestão de IDs Sequenciais (v12.33.20)
 router.post('/flow/next-code', adminController.getNextCustomerCode.bind(adminController));
+router.post('/flow/update-customer', adminController.updateCustomerFromFlow.bind(adminController));
 router.get('/settings/data', adminController.getSettingsData.bind(adminController));
 router.post('/settings/update', adminController.updateSettings.bind(adminController));
 
