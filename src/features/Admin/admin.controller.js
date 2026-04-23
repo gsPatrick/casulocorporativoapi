@@ -484,7 +484,9 @@ class AdminController {
       const code = await adminService.generateNextCode(customerData);
       
       console.log(`[FLOW]: Código ${code} gerado para o cliente ${customerData.email || customerData.id}`);
-      res.json({ codigo: code });
+      
+      // Retornar como número real para evitar erro de 'type mismatch' no Shopify (Integer vs String)
+      res.json({ codigo: parseInt(code) });
     } catch (error) {
       console.error('[FLOW ERROR]:', error.message);
       res.status(500).json({ error: 'Erro ao gerar código sequencial' });
