@@ -485,8 +485,9 @@ class AdminController {
       
       console.log(`[FLOW]: Código ${code} gerado para o cliente ${customerData.email || customerData.id}`);
       
-      // Retornar como número real para evitar erro de 'type mismatch' no Shopify (Integer vs String)
-      res.json({ codigo: parseInt(code) });
+      // Retornar apenas o número puro como texto para máxima compatibilidade com Shopify Flow (v12.33.25)
+      res.set('Content-Type', 'text/plain');
+      res.send(code.toString());
     } catch (error) {
       console.error('[FLOW ERROR]:', error.message);
       res.status(500).json({ error: 'Erro ao gerar código sequencial' });
