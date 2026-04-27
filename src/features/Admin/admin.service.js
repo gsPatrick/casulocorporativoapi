@@ -19,6 +19,23 @@ class AdminService {
     return setting;
   }
 
+  async getExpirationHours() {
+    const setting = await Setting.findOne({ where: { key: 'proposal_expiration_hours' } });
+    return setting ? parseInt(setting.value) : 720; // Default 720h (30 dias)
+  }
+
+  async updateExpirationHours(newValue) {
+    const [setting, created] = await Setting.findOrCreate({
+      where: { key: 'proposal_expiration_hours' },
+      defaults: { value: newValue.toString(), description: 'Tempo em horas para expirar uma proposta' }
+    });
+
+    if (!created) {
+      await setting.update({ value: newValue.toString() });
+    }
+    return setting;
+  }
+
   async generateNextCode(customerData) {
     // 1. Get current value and increment
     const setting = await Setting.findOne({ where: { key: 'next_customer_code' } });

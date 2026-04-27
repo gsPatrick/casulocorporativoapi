@@ -811,6 +811,9 @@
 
                 if (data) {
                     document.getElementById('next-code-input').value = data.nextCode;
+                    if(document.getElementById('expiration-input')) {
+                        document.getElementById('expiration-input').value = data.expirationHours;
+                    }
                     const historyBody = document.getElementById('history-table-body');
                     historyBody.innerHTML = data.history.map(entry => {
                         const isPF = entry.form_id === '958410';
@@ -860,6 +863,7 @@
 
         async function saveSettings() {
             const nextCode = document.getElementById('next-code-input').value;
+            const expirationHours = document.getElementById('expiration-input') ? document.getElementById('expiration-input').value : undefined;
             const btn = event.target;
             const originalText = btn.innerHTML;
             
@@ -871,7 +875,7 @@
                 const response = await fetch(`${window.location.origin}/admin/settings/update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ nextCode })
+                    body: JSON.stringify({ nextCode, expirationHours })
                 });
 
                 if (response.ok) {
@@ -901,6 +905,22 @@
         <div style="display: grid; grid-template-columns: 350px 1fr; gap: 30px;">
             <!-- Painel Esquerdo: Configuração do Contador -->
             <div>
+                <div class="polaris-card" style="padding: 25px; margin-bottom: 20px;">
+                    <h3 style="text-transform: uppercase; font-weight: 800; font-size: 14px; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px;">Validade de Propostas</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 25px;">Defina o prazo de expiração das propostas geradas.</p>
+                    
+                    <div style="margin-bottom: 25px;">
+                        <label class="label-premium">Horas até expirar</label>
+                        <input type="number" id="expiration-input" class="input-premium" style="font-size: 18px; font-weight: 800; text-align: center;" placeholder="Ex: 720">
+                    </div>
+
+                    <button class="btn-black" style="width: 100%; height: 50px;" onclick="saveSettings()">Salvar Prazo</button>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: #fafafa; border: 1px dashed #ccc; font-size: 11px; color: #666;">
+                        <strong>Dica:</strong> 24 horas = 1 dia, 720 horas = 30 dias.
+                    </div>
+                </div>
+
                 <div class="polaris-card" style="padding: 25px;">
                     <h3 style="text-transform: uppercase; font-weight: 800; font-size: 14px; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px;">ID Sequencial B2B</h3>
                     <p style="font-size: 13px; color: #666; margin-bottom: 25px;">Defina o próximo número de ID atribuído automaticamente.</p>

@@ -523,10 +523,12 @@ class AdminController {
       const offset = parseInt(req.query.offset) || 0;
 
       const nextCode = await adminService.getNextCodeValue();
+      const expirationHours = await adminService.getExpirationHours();
       const { count, rows: history } = await adminService.getCodeHistory(limit, offset);
       
       res.json({ 
         nextCode, 
+        expirationHours,
         history,
         pagination: {
           total: count,
@@ -541,13 +543,17 @@ class AdminController {
 
   async updateSettings(req, res) {
     try {
-      const { nextCode } = req.body;
+      const { nextCode, expirationHours } = req.body;
       const session = await this.validateSession(req, res);
       if (!session) return;
 
-      if (nextCode === undefined) return res.status(400).json({ error: 'nextCode é obrigatório' });
+      if (nextCode !== undefined) {
+        await adminService.updateNextCodeValue(nextCode);
+      }
+      if (expirationHours !== undefined) {
+        await adminService.updateExpirationHours(expirationHours);
+      }
       
-      await adminService.updateNextCodeValue(nextCode);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: 'Erro ao atualizar configurações' });

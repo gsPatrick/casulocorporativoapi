@@ -372,11 +372,28 @@ class OrcamentoService {
       order: [['createdAt', 'DESC']]
     });
 
+    const expirationHours = await adminService.getExpirationHours();
+    const expirationMs = expirationHours * 60 * 60 * 1000;
+    const now = new Date().getTime();
+
+    const data = rows.map(row => {
+      const p = typeof row.get === 'function' ? row.get({ plain: true }) : row;
+      const createdTime = new Date(p.createdAt).getTime();
+      const expiresAt = new Date(createdTime + expirationMs);
+      
+      // Override status for expired ones if they were pending/analysis
+      if (now > expiresAt.getTime() && ['pendente', 'analise', 'enviado'].includes(p.status)) {
+        p.status = 'expirado';
+      }
+      p.expiresAt = expiresAt.toISOString();
+      return p;
+    });
+
     return {
       total: count,
       pages: Math.ceil(count / limit),
       currentPage: page,
-      data: rows
+      data: data
     };
   }
 
