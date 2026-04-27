@@ -102,6 +102,9 @@ class OrcamentoService {
     const seq = await adminService.generateNextProposalSequence();
     const formattedSeq = seq.toString().padStart(2, '0');
     const customId = `${customerCode || 'GUEST'}${year2Digits}${formattedSeq}`;
+    
+    // Fixar o tempo de expiração no momento da criação da proposta (v5.6.0)
+    const expirationMinutes = await adminService.getExpirationMinutes();
 
     const orcamento = await Orcamento.create({
       id: orcamentoId,
@@ -129,7 +132,8 @@ class OrcamentoService {
       customer_company: metadata.empresa || data.lead?.empresa || data.lead?.razao_social || null,
       customer_address: metadata.endereco || data.lead?.endereco || null,
       customer_cep: metadata.cep || metadata.cep_dot || data.lead?.cep || null,
-      customer_code: customerCode
+      customer_code: customerCode,
+      expiration_minutes: expirationMinutes
     });
     console.log(`[${new Date().toISOString()}] [SERVICE]: Escrita no Postgres concluída em ${Date.now() - dbStart}ms (Total: ${Date.now() - startService}ms)`);
 
@@ -384,9 +388,11 @@ class OrcamentoService {
                            : expirationMs;
       const expiresAt = new Date(createdTime + specificMs);
       
-      // Override status for expired ones if they were pending/analysis
+      // Override status for expired ones se eram pendente/analise/enviado
       if (now > expiresAt.getTime() && ['pendente', 'analise', 'enviado'].includes(p.status)) {
         p.status = 'expirado';
+        // Persistir no banco para que uma mudança global de validade futura não ressuscite a proposta (v5.6.0)
+        Orcamento.update({ status: 'expirado' }, { where: { id: p.id } }).catch(e => console.error('[EXPIRATION SYNC ERROR]', e));
       }
       p.expiresAt = expiresAt.toISOString();
       return p;
