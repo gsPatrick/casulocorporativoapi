@@ -62,10 +62,10 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('✅ Conexão com Postgres estabelecida com sucesso.');
     
-    // Sync models (MODO RESET: force: true para limpar tudo no startup conforme solicitado)
-    console.log('⚠️  Limpando e recriando banco de dados (MODO RESET)...');
-    await sequelize.sync({ force: true });
-    console.log('✅ Banco de dados resetado com sucesso.');
+    // Sync models (MODO ALTER: atualiza schema sem apagar dados)
+    console.log('🔄 Atualizando schema do banco de dados (MODO ALTER)...');
+    await sequelize.sync({ alter: true });
+    console.log('✅ Banco de dados atualizado com sucesso.');
 
     // Limpar diretório de imagens temporárias no startup
     const files = fs.readdirSync(imagesDir);
