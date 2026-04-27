@@ -45,7 +45,8 @@ class OrcamentoController {
   async listByCustomer(req, res) {
     try {
       const { customer_id } = req.params;
-      const orcamentos = await orcamentoService.getOrcamentosByCustomer(customer_id);
+      const { page, limit, status } = req.query;
+      const orcamentos = await orcamentoService.getOrcamentosByCustomer(customer_id, { page, limit, status });
       res.json(orcamentos);
     } catch (error) {
       res.status(500).json({ error: 'Erro ao listar orçamentos' });

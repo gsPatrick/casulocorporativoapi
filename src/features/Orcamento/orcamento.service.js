@@ -309,16 +309,37 @@ class OrcamentoService {
     return total;
   }
 
-  async getOrcamentosByCustomer(customerId) {
+  async getOrcamentosByCustomer(customerId, options = {}) {
     const { Op } = require('sequelize');
-    return await Orcamento.findAll({
-      where: { 
-        shopify_customer_id: customerId.toString(),
-        hidden_for_customer: false,
-        status: { [Op.in]: ['aprovado', 'finalizado', 'enviado', 'cancelado', 'pendente', 'analise'] }
-      },
+    const limit = parseInt(options.limit) || 10;
+    const page = parseInt(options.page) || 1;
+    const offset = (page - 1) * limit;
+    const statusFilter = options.status;
+
+    const where = { 
+      shopify_customer_id: customerId.toString(),
+      hidden_for_customer: false
+    };
+
+    if (statusFilter && statusFilter !== 'todos') {
+      where.status = statusFilter;
+    } else {
+      where.status = { [Op.in]: ['aprovado', 'finalizado', 'enviado', 'cancelado', 'pendente', 'analise', 'expirado'] };
+    }
+
+    const { count, rows } = await Orcamento.findAndCountAll({
+      where,
+      limit,
+      offset,
       order: [['createdAt', 'DESC']]
     });
+
+    return {
+      total: count,
+      pages: Math.ceil(count / limit),
+      currentPage: page,
+      data: rows
+    };
   }
 
   async updateOrcamento(id, customerId, data) {
