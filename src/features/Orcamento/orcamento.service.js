@@ -256,28 +256,42 @@ class OrcamentoService {
     const accessToken = process.env.SHOPIFY_ACCESS_TOKEN || process.env.SHOPIFY_API_SECRET; // Usando o que estiver disponível
 
     return await Promise.all(items.map(async (item) => {
-      let especificacao_generica = item.especificacao_generica || null;
+      let especificacao_generi      let product_description = item.product_description || '';
+      let metafields_data = {};
 
-      // Buscar Metafield do Shopify via API somente se o frontend não tiver fornecido (Fallback)
-      if (!especificacao_generica && item.product_id && accessToken) {
+      // Buscar Dados do Produto e Metafields no Shopify via API
+      if (item.product_id && accessToken) {
         try {
           const productId = item.product_id.toString().replace('gid://shopify/Product/', '');
-          const response = await axios({
+          
+          // 1. Buscar Produto (para descrição)
+          const productRes = await axios({
+            url: `https://${shop}/admin/api/2024-01/products/${productId}.json`,
+            method: 'GET',
+            headers: { 'X-Shopify-Access-Token': accessToken }
+          });
+          product_description = productRes.data.product.body_html || '';
+
+          // 2. Buscar Metafields
+          const metafieldsRes = await axios({
             url: `https://${shop}/admin/api/2024-01/products/${productId}/metafields.json`,
             method: 'GET',
-            headers: {
-              'X-Shopify-Access-Token': accessToken,
-              'Content-Type': 'application/json'
-            }
+            headers: { 'X-Shopify-Access-Token': accessToken }
           });
 
-          // Filtrar pelo namespace e key solicitados
-          const metafield = response.data.metafields.find(m => m.namespace === 'custom' && m.key === 'especificacao_generica');
-          if (metafield) {
-            especificacao_generica = metafield.value;
+          metafieldsRes.data.metafields.forEach(m => {
+            if (m.namespace === 'custom') {
+               metafields_data[m.key] = m.value;
+            }
+          });
+          
+          if (metafields_data.especificacao_generica) {
+            especificacao_generica = metafields_data.especificacao_generica;
           }
         } catch (error) {
-          console.error(`[PDF SERVICE]: Falha ao buscar metafield para produto ${item.product_id}:`, error.message);
+          console.error(`[ORCAMENTO SERVICE]: Falha ao buscar dados do produto ${item.product_id}:`, error.message);
+        }
+      }uct_id}:`, error.message);
         }
       }
 
@@ -288,6 +302,8 @@ class OrcamentoService {
         title: item.title || 'Produto',
         technical_specification: item.technical_specification || '',
         especificacao_generica: item.especificacao_generica || especificacao_generica,
+        product_description: product_description,
+        metafields: metafields_data,
         price: item.price || 0,
         additional_info: item.additional_info || '',
         custom_image: item.custom_image || null,
