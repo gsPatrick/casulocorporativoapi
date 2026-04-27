@@ -431,7 +431,7 @@ class OrcamentoService {
     });
     
     if (!orcamento) throw new Error('Orçamento não encontrado');
-    if (orcamento.status !== 'pendente') throw new Error('Esta proposta já foi enviada ou está em outro estado.');
+    if (!['pendente', 'analise'].includes(orcamento.status)) throw new Error('Esta proposta já foi enviada ou está em outro estado.');
 
     await orcamento.update({ status: 'analise' });
     return orcamento;
