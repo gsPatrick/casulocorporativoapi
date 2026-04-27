@@ -120,7 +120,7 @@ const Orcamento = sequelize.define('Orcamento', {
   },
   show_prices_to_customer: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true, // Por padrão, exibe os preços
+    allowNull: true,
   },
 }, {
   timestamps: true,
