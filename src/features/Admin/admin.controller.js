@@ -146,7 +146,7 @@ class AdminController {
     async updateOrcamento(req, res) {
     try {
       const { id } = req.params;
-      const { items, condicao_id, termos_contrato, total_price, show_prices_to_customer, expiration_hours } = req.body;
+      const { items, condicao_id, termos_contrato, total_price, show_prices_to_customer, expiration_minutes } = req.body;
       
       const session = await this.validateSession(req, res);
       if (!session) return;
@@ -209,7 +209,7 @@ class AdminController {
         show_prices_to_customer: show_prices_to_customer !== undefined ? show_prices_to_customer : orcamento.show_prices_to_customer,
         condicao_json: condicaoData,
         termos_contrato: termos_contrato,
-        expiration_hours: expiration_hours !== undefined && expiration_hours !== "" ? parseInt(expiration_hours) : null
+        expiration_minutes: expiration_minutes !== undefined && expiration_minutes !== "" ? parseInt(expiration_minutes) : null
       });
 
       // 3. Reenviar e-mail se for convidado (Lead) para notificar do novo PDF (v4.2.1)
@@ -524,12 +524,12 @@ class AdminController {
       const offset = parseInt(req.query.offset) || 0;
 
       const nextCode = await adminService.getNextCodeValue();
-      const expirationHours = await adminService.getExpirationHours();
+      const expirationMinutes = await adminService.getExpirationMinutes();
       const { count, rows: history } = await adminService.getCodeHistory(limit, offset);
       
       res.json({ 
         nextCode, 
-        expirationHours,
+        expirationMinutes,
         history,
         pagination: {
           total: count,
@@ -544,15 +544,15 @@ class AdminController {
 
   async updateSettings(req, res) {
     try {
-      const { nextCode, expirationHours } = req.body;
+      const { nextCode, expirationMinutes } = req.body;
       const session = await this.validateSession(req, res);
       if (!session) return;
 
       if (nextCode !== undefined) {
         await adminService.updateNextCodeValue(nextCode);
       }
-      if (expirationHours !== undefined) {
-        await adminService.updateExpirationHours(expirationHours);
+      if (expirationMinutes !== undefined) {
+        await adminService.updateExpirationMinutes(expirationMinutes);
       }
       
       res.json({ success: true });

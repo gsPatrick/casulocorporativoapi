@@ -390,8 +390,8 @@
                                             </div>
 
                                             <div style="margin-top: 20px;">
-                                                <label class="label-premium">Validade Customizada (Horas)</label>
-                                                <input type="number" id="custom-expiration-<%= orc.id %>" class="input-premium" style="background: #fff;" placeholder="Padrão do Sistema" value="<%= orc.expiration_hours || '' %>">
+                                                <label class="label-premium">Validade Customizada (Minutos)</label>
+                                                <input type="number" id="custom-expiration-<%= orc.id %>" class="input-premium" style="background: #fff;" placeholder="Padrão do Sistema" value="<%= orc.expiration_minutes || '' %>">
                                                 <div style="font-size: 10px; color: #aaa; margin-top: 5px;">
                                                     Deixe em branco para usar o prazo padrão do sistema (Definido nas Configurações).
                                                 </div>
@@ -689,7 +689,7 @@
                         condicao_id: condicaoInput.value,
                         total_price: document.getElementById(`total-manual-${id}`).value,
                         show_prices_to_customer: document.getElementById(`visibility-${id}`).value === "" ? null : (document.getElementById(`visibility-${id}`).value === "true"),
-                        expiration_hours: document.getElementById(`custom-expiration-${id}`).value
+                        expiration_minutes: document.getElementById(`custom-expiration-${id}`).value
                     })
                 });
 
@@ -821,7 +821,7 @@
                 if (data) {
                     document.getElementById('next-code-input').value = data.nextCode;
                     if(document.getElementById('expiration-input')) {
-                        document.getElementById('expiration-input').value = data.expirationHours;
+                        document.getElementById('expiration-input').value = data.expirationMinutes;
                     }
                     const historyBody = document.getElementById('history-table-body');
                     historyBody.innerHTML = data.history.map(entry => {
@@ -872,7 +872,7 @@
 
         async function saveSettings() {
             const nextCode = document.getElementById('next-code-input').value;
-            const expirationHours = document.getElementById('expiration-input') ? document.getElementById('expiration-input').value : undefined;
+            const expirationMinutes = document.getElementById('expiration-input') ? document.getElementById('expiration-input').value : undefined;
             const btn = event.target;
             const originalText = btn.innerHTML;
             
@@ -884,7 +884,7 @@
                 const response = await fetch(`${window.location.origin}/admin/settings/update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ nextCode, expirationHours })
+                    body: JSON.stringify({ nextCode, expirationMinutes })
                 });
 
                 if (response.ok) {
@@ -919,14 +919,14 @@
                     <p style="font-size: 13px; color: #666; margin-bottom: 25px;">Defina o prazo de expiração das propostas geradas.</p>
                     
                     <div style="margin-bottom: 25px;">
-                        <label class="label-premium">Horas até expirar</label>
-                        <input type="number" id="expiration-input" class="input-premium" style="font-size: 18px; font-weight: 800; text-align: center;" placeholder="Ex: 720">
+                        <label class="label-premium">Minutos até expirar</label>
+                        <input type="number" id="expiration-input" class="input-premium" style="font-size: 18px; font-weight: 800; text-align: center;" placeholder="Ex: 1440">
                     </div>
 
                     <button class="btn-black" style="width: 100%; height: 50px;" onclick="saveSettings()">Salvar Prazo</button>
                     
                     <div style="margin-top: 20px; padding: 15px; background: #fafafa; border: 1px dashed #ccc; font-size: 11px; color: #666;">
-                        <strong>Dica:</strong> 24 horas = 1 dia, 720 horas = 30 dias.
+                        <strong>Dica:</strong> 60 minutos = 1 hora, 1440 minutos = 1 dia, 43200 minutos = 30 dias.
                     </div>
                 </div>
 

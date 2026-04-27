@@ -372,15 +372,15 @@ class OrcamentoService {
       order: [['createdAt', 'DESC']]
     });
 
-    const expirationHours = await adminService.getExpirationHours();
-    const expirationMs = expirationHours * 60 * 60 * 1000;
+    const expirationMinutes = await adminService.getExpirationMinutes();
+    const expirationMs = expirationMinutes * 60 * 1000;
     const now = new Date().getTime();
 
     const data = rows.map(row => {
       const p = typeof row.get === 'function' ? row.get({ plain: true }) : row;
       const createdTime = new Date(p.createdAt).getTime();
-      const specificMs = p.expiration_hours !== null && p.expiration_hours !== undefined 
-                           ? p.expiration_hours * 60 * 60 * 1000 
+      const specificMs = p.expiration_minutes !== null && p.expiration_minutes !== undefined 
+                           ? p.expiration_minutes * 60 * 1000 
                            : expirationMs;
       const expiresAt = new Date(createdTime + specificMs);
       

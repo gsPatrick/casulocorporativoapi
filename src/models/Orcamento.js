@@ -122,7 +122,7 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.BOOLEAN,
     allowNull: true,
   },
-  expiration_hours: {
+  expiration_minutes: {
     type: DataTypes.INTEGER,
     allowNull: true, // Se null, usa o padrão global
   },
