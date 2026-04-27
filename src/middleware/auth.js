@@ -55,13 +55,18 @@ const validateCustomerSession = async (req, res, next) => {
     return res.status(403).json({ error: 'Sessão do cliente não encontrada. Por favor, faça login na loja.' });
   }
 
-  // Compara os IDs (Removendo prefixos de GID se houver)
-  const cleanRequestedId = requestedId.replace('gid://shopify/Customer/', '');
-  const cleanLoggedInId = loggedInId.replace('gid://shopify/Customer/', '');
+  // Se a rota possui um ID específico na URL, validamos se o cliente logado é ele mesmo
+  if (requestedId) {
+    const cleanRequestedId = requestedId.replace('gid://shopify/Customer/', '');
+    const cleanLoggedInId = loggedInId.replace('gid://shopify/Customer/', '');
 
-  if (cleanRequestedId !== cleanLoggedInId) {
-    console.warn(`[AUTH]: Tentativa de acesso não autorizado de ${cleanLoggedInId} para dados de ${cleanRequestedId}`);
-    return res.status(403).json({ error: 'Acesso negado: Você só pode ver seus próprios orçamentos.' });
+    if (cleanRequestedId !== cleanLoggedInId) {
+      console.warn(`[AUTH]: Tentativa de acesso não autorizado de ${cleanLoggedInId} para dados de ${cleanRequestedId}`);
+      return res.status(403).json({ error: 'Acesso negado: Você só pode ver seus próprios orçamentos.' });
+    }
+  } else {
+    // Se a rota não exige um ID de cliente específico na URL, garantimos apenas que o cliente esteja logado no e-mail correto (O controller cuida da validação do orcamento vs customer_id).
+    req.loggedInCustomerId = loggedInId.replace('gid://shopify/Customer/', '');
   }
 
   next();
