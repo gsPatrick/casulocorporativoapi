@@ -47,7 +47,7 @@ const Orcamento = sequelize.define('Orcamento', {
   },
   status: {
     type: DataTypes.STRING,
-    defaultValue: 'pendente', // pendente, enviado, aprovado, cancelado
+    defaultValue: 'pendente', // pendente, analise, enviado, aprovado, cancelado
   },
   pdf_url: {
     type: DataTypes.STRING,
@@ -117,6 +117,10 @@ const Orcamento = sequelize.define('Orcamento', {
   hidden_for_customer: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+  },
+  show_prices_to_customer: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false, // Por padrão, oculta até o admin liberar
   },
 }, {
   timestamps: true,

@@ -122,7 +122,7 @@ class OrcamentoService {
       vendedor,
       parceiro,
       customer_tags: data.customer_tags || [],
-      status: 'pendente',
+      status: 'analise',
       condicao_json: condicaoJson,
       // Novos campos B2B
       customer_cnpj: metadata.cnpj || data.lead?.cnpj || null,
@@ -355,7 +355,7 @@ class OrcamentoService {
     await orcamento.update({
       line_items_json: data.line_items_json,
       total_price: data.total_price || orcamento.total_price,
-      status: 'analise' // Sempre volta para análise ao editar
+      status: 'analise'
     });
     
     return orcamento;

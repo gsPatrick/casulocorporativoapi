@@ -62,9 +62,17 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('✅ Conexão com Postgres estabelecida com sucesso.');
     
-    // Sync models (Usa { alter: true } em vez de force para não perder dados)
-    await sequelize.sync({ alter: true });
-    console.log('✅ Banco de dados sincronizado (MODO: ALTER).');
+    // Sync models (MODO RESET: force: true para limpar tudo no startup conforme solicitado)
+    console.log('⚠️  Limpando e recriando banco de dados (MODO RESET)...');
+    await sequelize.sync({ force: true });
+    console.log('✅ Banco de dados resetado com sucesso.');
+
+    // Limpar diretório de imagens temporárias no startup
+    const files = fs.readdirSync(imagesDir);
+    for (const file of files) {
+      if (file !== '.gitkeep') fs.unlinkSync(path.join(imagesDir, file));
+    }
+    console.log('✅ Imagens temporárias limpas.');
 
     app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
