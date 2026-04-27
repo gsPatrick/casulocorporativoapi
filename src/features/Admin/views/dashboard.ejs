@@ -390,10 +390,29 @@
                                             </div>
 
                                             <div style="margin-top: 20px;">
-                                                <label class="label-premium">Validade Customizada (Minutos)</label>
-                                                <input type="number" id="custom-expiration-<%= orc.id %>" class="input-premium" style="background: #fff;" placeholder="Padrão do Sistema" value="<%= orc.expiration_minutes || '' %>">
+                                                <label class="label-premium">Validade Customizada</label>
+                                                <% 
+                                                  let exp = { v: '', u: 'dias' };
+                                                  if (orc.expiration_minutes) {
+                                                      if (orc.expiration_minutes % 525600 === 0) exp = { v: orc.expiration_minutes / 525600, u: 'anos' };
+                                                      else if (orc.expiration_minutes % 43200 === 0) exp = { v: orc.expiration_minutes / 43200, u: 'meses' };
+                                                      else if (orc.expiration_minutes % 1440 === 0) exp = { v: orc.expiration_minutes / 1440, u: 'dias' };
+                                                      else if (orc.expiration_minutes % 60 === 0) exp = { v: orc.expiration_minutes / 60, u: 'horas' };
+                                                      else exp = { v: orc.expiration_minutes, u: 'minutos' };
+                                                  }
+                                                %>
+                                                <div style="display: flex; gap: 10px;">
+                                                    <input type="number" id="custom-expiration-val-<%= orc.id %>" class="input-premium" style="background: #fff; width: 60%;" placeholder="Qtd" value="<%= exp.v %>">
+                                                    <select id="custom-expiration-unit-<%= orc.id %>" class="input-premium" style="background: #fff; width: 40%;">
+                                                        <option value="minutos" <%= exp.u === 'minutos' ? 'selected' : '' %>>Minuto(s)</option>
+                                                        <option value="horas" <%= exp.u === 'horas' ? 'selected' : '' %>>Hora(s)</option>
+                                                        <option value="dias" <%= exp.u === 'dias' ? 'selected' : '' %>>Dia(s)</option>
+                                                        <option value="meses" <%= exp.u === 'meses' ? 'selected' : '' %>>Mês(es)</option>
+                                                        <option value="anos" <%= exp.u === 'anos' ? 'selected' : '' %>>Ano(s)</option>
+                                                    </select>
+                                                </div>
                                                 <div style="font-size: 10px; color: #aaa; margin-top: 5px;">
-                                                    Deixe em branco para usar o prazo padrão do sistema (Definido nas Configurações).
+                                                    Deixe a quantidade em branco para usar o padrão.
                                                 </div>
                                             </div>
                                         </div>
@@ -689,7 +708,17 @@
                         condicao_id: condicaoInput.value,
                         total_price: document.getElementById(`total-manual-${id}`).value,
                         show_prices_to_customer: document.getElementById(`visibility-${id}`).value === "" ? null : (document.getElementById(`visibility-${id}`).value === "true"),
-                        expiration_minutes: document.getElementById(`custom-expiration-${id}`).value
+                        expiration_minutes: (function() {
+                            const val = document.getElementById(`custom-expiration-val-${id}`).value;
+                            if (!val) return null;
+                            const unit = document.getElementById(`custom-expiration-unit-${id}`).value;
+                            let mult = 1;
+                            if (unit === 'horas') mult = 60;
+                            if (unit === 'dias') mult = 1440;
+                            if (unit === 'meses') mult = 43200;
+                            if (unit === 'anos') mult = 525600;
+                            return Math.round(parseFloat(val) * mult);
+                        })()
                     })
                 });
 
@@ -820,9 +849,16 @@
 
                 if (data) {
                     document.getElementById('next-code-input').value = data.nextCode;
-                    if(document.getElementById('expiration-input')) {
-                        document.getElementById('expiration-input').value = data.expirationMinutes;
+                    
+                    if(document.getElementById('expiration-val-input')) {
+                        const m = parseInt(data.expirationMinutes) || 43200;
+                        if (m % 525600 === 0) { document.getElementById('expiration-val-input').value = m / 525600; document.getElementById('expiration-unit-input').value = 'anos'; }
+                        else if (m % 43200 === 0) { document.getElementById('expiration-val-input').value = m / 43200; document.getElementById('expiration-unit-input').value = 'meses'; }
+                        else if (m % 1440 === 0) { document.getElementById('expiration-val-input').value = m / 1440; document.getElementById('expiration-unit-input').value = 'dias'; }
+                        else if (m % 60 === 0) { document.getElementById('expiration-val-input').value = m / 60; document.getElementById('expiration-unit-input').value = 'horas'; }
+                        else { document.getElementById('expiration-val-input').value = m; document.getElementById('expiration-unit-input').value = 'minutos'; }
                     }
+
                     const historyBody = document.getElementById('history-table-body');
                     historyBody.innerHTML = data.history.map(entry => {
                         const isPF = entry.form_id === '958410';
@@ -872,7 +908,21 @@
 
         async function saveSettings() {
             const nextCode = document.getElementById('next-code-input').value;
-            const expirationMinutes = document.getElementById('expiration-input') ? document.getElementById('expiration-input').value : undefined;
+            
+            let expirationMinutes = undefined;
+            if (document.getElementById('expiration-val-input')) {
+                const val = document.getElementById('expiration-val-input').value;
+                if (val) {
+                    const unit = document.getElementById('expiration-unit-input').value;
+                    let mult = 1;
+                    if (unit === 'horas') mult = 60;
+                    if (unit === 'dias') mult = 1440;
+                    if (unit === 'meses') mult = 43200;
+                    if (unit === 'anos') mult = 525600;
+                    expirationMinutes = Math.round(parseFloat(val) * mult);
+                }
+            }
+
             const btn = event.target;
             const originalText = btn.innerHTML;
             
@@ -919,8 +969,17 @@
                     <p style="font-size: 13px; color: #666; margin-bottom: 25px;">Defina o prazo de expiração das propostas geradas.</p>
                     
                     <div style="margin-bottom: 25px;">
-                        <label class="label-premium">Minutos até expirar</label>
-                        <input type="number" id="expiration-input" class="input-premium" style="font-size: 18px; font-weight: 800; text-align: center;" placeholder="Ex: 1440">
+                        <label class="label-premium">Prazo de Validade</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" id="expiration-val-input" class="input-premium" style="font-size: 18px; font-weight: 800; text-align: center; width: 60%;" placeholder="Ex: 30">
+                            <select id="expiration-unit-input" class="input-premium" style="font-size: 16px; width: 40%;">
+                                <option value="minutos">Minuto(s)</option>
+                                <option value="horas">Hora(s)</option>
+                                <option value="dias">Dia(s)</option>
+                                <option value="meses">Mês(es)</option>
+                                <option value="anos">Ano(s)</option>
+                            </select>
+                        </div>
                     </div>
 
                     <button class="btn-black" style="width: 100%; height: 50px;" onclick="saveSettings()">Salvar Prazo</button>
