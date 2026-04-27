@@ -348,11 +348,14 @@ class OrcamentoService {
     });
     
     if (!orcamento) throw new Error('Orçamento não encontrado');
-    if (orcamento.status !== 'pendente') throw new Error('Apenas propostas pendentes podem ser editadas.');
+    if (!['pendente', 'analise', 'aprovado'].includes(orcamento.status)) {
+      throw new Error('Esta proposta não pode mais ser editada neste status.');
+    }
 
     await orcamento.update({
       line_items_json: data.line_items_json,
-      total_price: data.total_price || orcamento.total_price
+      total_price: data.total_price || orcamento.total_price,
+      status: 'analise' // Sempre volta para análise ao editar
     });
     
     return orcamento;
