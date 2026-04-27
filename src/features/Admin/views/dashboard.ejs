@@ -361,14 +361,13 @@
                                         </div>
                                     <% }); %>
 
-                                    <div style="margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                    <div style="margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
                                         <div style="padding: 20px; background: #fff; border: 1px solid #000; border-style: dashed;">
                                             <label class="label-premium" style="color: #000;">Termos do Contrato / Observações Adicionais (PDF)</label>
                                             <textarea name="termos_contrato" id="termos-<%= orc.id %>" class="input-premium" rows="6" placeholder="Ex: Prazo de entrega de 30 dias úteis..." style="resize: vertical; margin-top: 8px;"><%= orc.termos_contrato || '' %></textarea>
-                                            <div style="font-size: 10px; color: #999; margin-top: 5px;">Este texto aparecerá ao final da proposta PDF gerada para o cliente.</div>
                                         </div>
                                         <div style="padding: 20px; background: #f9f9f9; border: 1px solid #eee;">
-                                            <label class="label-premium">Condição Comercial da Proposta</label>
+                                            <label class="label-premium">Condição Comercial</label>
                                             <select name="condicao_id" id="condicao-select-<%= orc.id %>" class="input-premium" style="margin-top: 8px; background: #fff;" onchange="recalcTotal('<%= orc.id %>')">
                                                 <option value="">Nenhuma (Valor Bruto)</option>
                                                 <% condicoes.forEach(cond => { %>
@@ -380,8 +379,25 @@
                                                     </option>
                                                 <% }); %>
                                             </select>
-                                            <div style="font-size: 10px; color: #999; margin-top: 10px; line-height: 1.4;">
-                                                A condição altera o <strong>Total Líquido</strong> da proposta. O PDF exibirá o subtotal e o ajuste aplicado.
+                                            
+                                            <div style="margin-top: 20px;">
+                                                <label class="label-premium">Visibilidade no Portal</label>
+                                                <select name="show_prices_to_customer" id="visibility-<%= orc.id %>" class="input-premium" style="background: #fff; border-color: #000;">
+                                                    <option value="" <%= orc.show_prices_to_customer === null ? 'selected' : '' %>>Padrão (Tags do Cliente)</option>
+                                                    <option value="true" <%= orc.show_prices_to_customer === true ? 'selected' : '' %>>Sempre Exibir Valor</option>
+                                                    <option value="false" <%= orc.show_prices_to_customer === false ? 'selected' : '' %>>Ocultar Valor (Sob Consulta)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div style="padding: 20px; background: #000; color: #fff;">
+                                            <label class="label-premium" style="color: #fff;">Valor Total Manual (Override)</label>
+                                            <input type="text" id="total-manual-<%= orc.id %>" 
+                                                   class="input-premium money-mask" 
+                                                   style="background: #000; color: #fff; border-color: #fff; font-size: 18px; font-weight: 800;"
+                                                   placeholder="R$ 0,00"
+                                                   value="<%= orc.total_price ? parseFloat(orc.total_price).toFixed(2).replace('.', ',') : '' %>">
+                                            <div style="font-size: 10px; color: #aaa; margin-top: 10px;">
+                                                Deixe em branco para usar o cálculo automático dos itens. Se preenchido, este valor será o total final da proposta.
                                             </div>
                                         </div>
                                     </div>
@@ -662,7 +678,9 @@
                     body: JSON.stringify({ 
                         items, 
                         termos_contrato: termosInput.value,
-                        condicao_id: condicaoInput.value
+                        condicao_id: condicaoInput.value,
+                        total_price: document.getElementById(`total-manual-${id}`).value,
+                        show_prices_to_customer: document.getElementById(`visibility-${id}`).value === "" ? null : (document.getElementById(`visibility-${id}`).value === "true")
                     })
                 });
 

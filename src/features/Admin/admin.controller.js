@@ -143,10 +143,10 @@ class AdminController {
   /**
    * Atualiza os itens e o valor total do orçamento (v4.2.0)
    */
-  async updateOrcamento(req, res) {
+    async updateOrcamento(req, res) {
     try {
       const { id } = req.params;
-      const { items, condicao_id, termos_contrato } = req.body;
+      const { items, condicao_id, termos_contrato, total_price, show_prices_to_customer } = req.body;
       
       const session = await this.validateSession(req, res);
       if (!session) return;
@@ -205,7 +205,8 @@ class AdminController {
       await orcamento.update({
         line_items_json: updatedItems,
         original_price: subtotal,
-        total_price: finalPrice,
+        total_price: total_price !== undefined ? parseFloat(total_price) : finalPrice,
+        show_prices_to_customer: show_prices_to_customer !== undefined ? show_prices_to_customer : orcamento.show_prices_to_customer,
         condicao_json: condicaoData,
         termos_contrato: termos_contrato
       });
