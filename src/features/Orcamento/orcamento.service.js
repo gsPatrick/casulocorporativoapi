@@ -292,8 +292,6 @@ class OrcamentoService {
         } catch (error) {
           console.error(`[ORCAMENTO SERVICE]: Falha ao buscar dados do produto ${item.product_id}:`, error.message);
         }
-      }uct_id}:`, error.message);
-        }
       }
 
       const parsedItem = {
