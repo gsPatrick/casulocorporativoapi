@@ -206,7 +206,11 @@ class OrcamentoService {
                 ${item.custom_image ? `<img src="${item.custom_image}" width="80" height="80" style="border: 1px solid #eee; object-fit: cover;" />` : ''}
                 <div>
                     <p style="margin: 0; font-weight: bold; font-size: 14px;">${item.title || item.product_id}</p>
-                    <p style="margin: 5px 0 0; font-size: 12px; color: #666;">Qtd: ${item.quantity || 1} | ${item.technical_specification || 'Sem especificações'}</p>
+                    <p style="margin: 5px 0 0; font-size: 12px; color: #888;">Qtd: <strong>${item.quantity || 1}</strong></p>
+                    ${item.especificacao_generica ? `
+                    <p style="margin: 5px 0 0; font-size: 11px; color: #814620; background: #fff8e1; padding: 4px 8px; border-radius: 4px; display: inline-block;">
+                      <strong>Configuração:</strong> ${item.especificacao_generica}
+                    </p>` : ''}
                 </div>
               </div>
             `).join('')}
