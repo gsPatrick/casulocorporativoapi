@@ -256,7 +256,8 @@ class OrcamentoService {
     const accessToken = process.env.SHOPIFY_ACCESS_TOKEN || process.env.SHOPIFY_API_SECRET; // Usando o que estiver disponível
 
     return await Promise.all(items.map(async (item) => {
-      let especificacao_generi      let product_description = item.product_description || '';
+      let especificacao_generica = item.especificacao_generica || null;
+      let product_description = item.product_description || '';
       let metafields_data = {};
 
       // Buscar Dados do Produto e Metafields no Shopify via API
