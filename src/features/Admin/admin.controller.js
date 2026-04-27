@@ -146,7 +146,7 @@ class AdminController {
     async updateOrcamento(req, res) {
     try {
       const { id } = req.params;
-      const { items, condicao_id, termos_contrato, total_price, show_prices_to_customer } = req.body;
+      const { items, condicao_id, termos_contrato, total_price, show_prices_to_customer, expiration_hours } = req.body;
       
       const session = await this.validateSession(req, res);
       if (!session) return;
@@ -208,7 +208,8 @@ class AdminController {
         total_price: total_price !== undefined ? parseFloat(total_price) : finalPrice,
         show_prices_to_customer: show_prices_to_customer !== undefined ? show_prices_to_customer : orcamento.show_prices_to_customer,
         condicao_json: condicaoData,
-        termos_contrato: termos_contrato
+        termos_contrato: termos_contrato,
+        expiration_hours: expiration_hours !== undefined && expiration_hours !== "" ? parseInt(expiration_hours) : null
       });
 
       // 3. Reenviar e-mail se for convidado (Lead) para notificar do novo PDF (v4.2.1)

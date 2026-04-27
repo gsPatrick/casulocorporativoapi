@@ -379,7 +379,10 @@ class OrcamentoService {
     const data = rows.map(row => {
       const p = typeof row.get === 'function' ? row.get({ plain: true }) : row;
       const createdTime = new Date(p.createdAt).getTime();
-      const expiresAt = new Date(createdTime + expirationMs);
+      const specificMs = p.expiration_hours !== null && p.expiration_hours !== undefined 
+                           ? p.expiration_hours * 60 * 60 * 1000 
+                           : expirationMs;
+      const expiresAt = new Date(createdTime + specificMs);
       
       // Override status for expired ones if they were pending/analysis
       if (now > expiresAt.getTime() && ['pendente', 'analise', 'enviado'].includes(p.status)) {

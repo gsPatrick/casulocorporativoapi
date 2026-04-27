@@ -122,6 +122,10 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.BOOLEAN,
     allowNull: true,
   },
+  expiration_hours: {
+    type: DataTypes.INTEGER,
+    allowNull: true, // Se null, usa o padrão global
+  },
 }, {
   timestamps: true,
   tableName: 'orcamentos',

@@ -388,6 +388,14 @@
                                                     <option value="false" <%= orc.show_prices_to_customer === false ? 'selected' : '' %>>Ocultar Valor (Sob Consulta)</option>
                                                 </select>
                                             </div>
+
+                                            <div style="margin-top: 20px;">
+                                                <label class="label-premium">Validade Customizada (Horas)</label>
+                                                <input type="number" id="custom-expiration-<%= orc.id %>" class="input-premium" style="background: #fff;" placeholder="Padrão do Sistema" value="<%= orc.expiration_hours || '' %>">
+                                                <div style="font-size: 10px; color: #aaa; margin-top: 5px;">
+                                                    Deixe em branco para usar o prazo padrão do sistema (Definido nas Configurações).
+                                                </div>
+                                            </div>
                                         </div>
                                         <div style="padding: 20px; background: #000; color: #fff;">
                                             <label class="label-premium" style="color: #fff;">Valor Total Manual (Override)</label>
@@ -680,7 +688,8 @@
                         termos_contrato: termosInput.value,
                         condicao_id: condicaoInput.value,
                         total_price: document.getElementById(`total-manual-${id}`).value,
-                        show_prices_to_customer: document.getElementById(`visibility-${id}`).value === "" ? null : (document.getElementById(`visibility-${id}`).value === "true")
+                        show_prices_to_customer: document.getElementById(`visibility-${id}`).value === "" ? null : (document.getElementById(`visibility-${id}`).value === "true"),
+                        expiration_hours: document.getElementById(`custom-expiration-${id}`).value
                     })
                 });
 
