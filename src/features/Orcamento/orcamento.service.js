@@ -298,13 +298,32 @@ class OrcamentoService {
         }
       }
 
+      // Função para limpar repetições de texto (Ex: "Texto Texto Texto" -> "Texto")
+      const cleanRepetition = (str) => {
+        if (!str || typeof str !== 'string') return str;
+        const trimmed = str.trim();
+        // Tenta detectar se a string inteira é composta por 2 ou mais repetições de um mesmo bloco longo
+        const half = Math.floor(trimmed.length / 2);
+        for (let i = 10; i <= half; i++) {
+           const pattern = trimmed.substring(0, i);
+           const remaining = trimmed.substring(i).trim();
+           if (remaining.startsWith(pattern.trim())) {
+              // Se o padrão se repete logo em seguida, assumimos duplicação e pegamos a primeira parte
+              // Mas apenas se for um padrão razoavelmente longo ( > 10 chars)
+              const parts = trimmed.split(pattern.trim()).filter(p => p.trim().length > 0);
+              if (parts.length === 0 || parts.every(p => p.trim() === '')) return pattern.trim();
+           }
+        }
+        return trimmed;
+      };
+
       const parsedItem = {
         type: item.type || 'standard',
         product_id: item.product_id,
         variant_id: item.variant_id || null,
         title: item.title || 'Produto',
         technical_specification: item.technical_specification || '',
-        especificacao_generica: item.especificacao_generica || especificacao_generica,
+        especificacao_generica: cleanRepetition(item.especificacao_generica || especificacao_generica),
         product_description: product_description,
         metafields: metafields_data,
         price: item.price || 0,
