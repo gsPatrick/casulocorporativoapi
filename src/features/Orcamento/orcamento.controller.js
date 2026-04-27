@@ -446,6 +446,50 @@ class OrcamentoController {
       res.status(500).json({ error: 'Erro ao limpar carrinho virtual' });
     }
   }
+
+  async cancel(req, res) {
+    try {
+      const { id } = req.params;
+      const customer_id = req.query.logged_in_customer_id; // Validado pelo middleware
+      const orcamento = await orcamentoService.cancelOrcamento(id, customer_id);
+      res.json({ success: true, status: orcamento.status });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async update(req, res) {
+    try {
+      const { id } = req.params;
+      const customer_id = req.query.logged_in_customer_id;
+      const orcamento = await orcamentoService.updateOrcamento(id, customer_id, req.body);
+      res.json(orcamento);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async submit(req, res) {
+    try {
+      const { id } = req.params;
+      const customer_id = req.query.logged_in_customer_id;
+      const orcamento = await orcamentoService.submitOrcamento(id, customer_id);
+      res.json(orcamento);
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async hide(req, res) {
+    try {
+      const { id } = req.params;
+      const customer_id = req.query.logged_in_customer_id;
+      await orcamentoService.hideOrcamento(id, customer_id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  }
 }
 
 module.exports = new OrcamentoController();

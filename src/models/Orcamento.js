@@ -105,6 +105,19 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  custom_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true,
+  },
+  sequence_number: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  hidden_for_customer: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
 }, {
   timestamps: true,
   tableName: 'orcamentos',

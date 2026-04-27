@@ -82,6 +82,20 @@ class AdminService {
       offset: offset
     });
   }
+
+  async generateNextProposalSequence() {
+    const [setting, created] = await Setting.findOrCreate({
+      where: { key: 'next_proposal_sequence' },
+      defaults: { value: '1', description: 'Sequencial global para orçamentos/propostas' }
+    });
+
+    const currentSeq = parseInt(setting.value);
+    const nextSeq = currentSeq + 1;
+    
+    await setting.update({ value: nextSeq.toString() });
+    
+    return currentSeq;
+  }
 }
 
 module.exports = new AdminService();

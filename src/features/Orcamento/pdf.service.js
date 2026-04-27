@@ -155,7 +155,7 @@ class PdfService {
     const subtotal = parseFloat(orcamento.original_price || orcamento.total_price || 0) * adjustmentFactor;
     
     return {
-      id: orcamento.id,
+      id: orcamento.custom_id || orcamento.id.substring(0, 8).toUpperCase(),
       date: new Date(orcamento.createdAt).toLocaleDateString('pt-BR'),
       logoBase64,
       // Sincronização Real dos Dados B2B (v5.4.0)

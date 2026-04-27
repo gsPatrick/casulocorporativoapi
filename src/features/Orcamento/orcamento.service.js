@@ -1,6 +1,7 @@
 const Orcamento = require('../../models/Orcamento');
 const shopify = require('../../config/shopify');
 const { Resend } = require('resend');
+const adminService = require('../Admin/admin.service');
 
 class OrcamentoService {
   async createOrcamento(data) {
@@ -95,6 +96,13 @@ class OrcamentoService {
 
     const customerEmail = data.customer_metadata?.email || data.customer_email || data.lead?.email || null;
 
+    // Gera o Custom ID (v12.35.1)
+    // Padrão: [Codigo do Cliente] + [Ano 2 dígitos] + [Sequencial 2+ dígitos]
+    const year2Digits = new Date().getFullYear().toString().slice(-2);
+    const seq = await adminService.generateNextProposalSequence();
+    const formattedSeq = seq.toString().padStart(2, '0');
+    const customId = `${customerCode || 'GUEST'}${year2Digits}${formattedSeq}`;
+
     const orcamento = await Orcamento.create({
       id: orcamentoId,
       shopify_customer_id: data.customer_id ? data.customer_id.toString() : null,
@@ -109,6 +117,8 @@ class OrcamentoService {
       discount_amount: 0,
       discount_category: null,
       short_code: shortCode,
+      custom_id: customId,
+      sequence_number: seq,
       vendedor,
       parceiro,
       customer_tags: data.customer_tags || [],
@@ -303,11 +313,67 @@ class OrcamentoService {
     const { Op } = require('sequelize');
     return await Orcamento.findAll({
       where: { 
-        shopify_customer_id: customerId,
-        status: { [Op.in]: ['aprovado', 'finalizado'] }
+        shopify_customer_id: customerId.toString(),
+        hidden_for_customer: false,
+        status: { [Op.in]: ['aprovado', 'finalizado', 'enviado', 'cancelado', 'pendente', 'analise'] }
       },
       order: [['createdAt', 'DESC']]
     });
+  }
+
+  async updateOrcamento(id, customerId, data) {
+    const orcamento = await Orcamento.findOne({ 
+      where: { id: id, shopify_customer_id: customerId } 
+    });
+    
+    if (!orcamento) throw new Error('Orçamento não encontrado');
+    if (orcamento.status !== 'pendente') throw new Error('Apenas propostas pendentes podem ser editadas.');
+
+    await orcamento.update({
+      line_items_json: data.line_items_json,
+      total_price: data.total_price || orcamento.total_price
+    });
+    
+    return orcamento;
+  }
+
+  async submitOrcamento(id, customerId) {
+    const orcamento = await Orcamento.findOne({ 
+      where: { id: id, shopify_customer_id: customerId } 
+    });
+    
+    if (!orcamento) throw new Error('Orçamento não encontrado');
+    if (orcamento.status !== 'pendente') throw new Error('Esta proposta já foi enviada ou está em outro estado.');
+
+    await orcamento.update({ status: 'analise' });
+    return orcamento;
+  }
+
+  async cancelOrcamento(id, customerId) {
+    const orcamento = await Orcamento.findOne({ 
+      where: { id: id, shopify_customer_id: customerId } 
+    });
+    
+    if (!orcamento) throw new Error('Orçamento não encontrado');
+    
+    // Só permite cancelar se estiver aprovado pelo admin (regra do usuário)
+    if (orcamento.status !== 'aprovado' && orcamento.status !== 'enviado') {
+        throw new Error('Apenas orçamentos aprovados/enviados podem ser cancelados.');
+    }
+
+    await orcamento.update({ status: 'cancelado' });
+    return orcamento;
+  }
+
+  async hideOrcamento(id, customerId) {
+    const orcamento = await Orcamento.findOne({ 
+      where: { id: id, shopify_customer_id: customerId } 
+    });
+    
+    if (!orcamento) throw new Error('Orçamento não encontrado');
+    
+    await orcamento.update({ hidden_for_customer: true });
+    return { success: true };
   }
 
   async getOrcamentoById(id) {
