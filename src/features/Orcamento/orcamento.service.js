@@ -444,9 +444,9 @@ class OrcamentoService {
     
     if (!orcamento) throw new Error('Orçamento não encontrado');
     
-    // Só permite cancelar se estiver aprovado pelo admin (regra do usuário)
-    if (orcamento.status !== 'aprovado' && orcamento.status !== 'enviado') {
-        throw new Error('Apenas orçamentos aprovados/enviados podem ser cancelados.');
+    // Só permite cancelar se estiver em estados iniciais ou aprovado
+    if (!['pendente', 'analise', 'aprovado', 'enviado'].includes(orcamento.status)) {
+        throw new Error('Esta proposta não pode mais ser cancelada neste status.');
     }
 
     await orcamento.update({ status: 'cancelado' });
