@@ -1,3 +1,9 @@
+<% 
+  const formatMoney = (val) => {
+    if (!val && val !== 0) return '0,00';
+    return parseFloat(val).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+%>
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -282,7 +288,7 @@
                             </span>
                         </td>
                         <td style="font-weight: 800;" id="display-total-<%= orc.id %>">
-                            R$ <%= parseFloat(orc.total_price).toFixed(2).replace('.', ',') %>
+                            R$ <%= formatMoney(orc.total_price) %>
                         </td>
                         <td style="text-align: right;">
                             <div style="display: inline-flex; gap: 10px;">
@@ -338,7 +344,7 @@
                                                     </div>
                                                     <div>
                                                         <label class="label-premium">Preço Unitário (R$)</label>
-                                                        <input type="text" name="items[<%= idx %>][price]" value="<%= parseFloat(item.price || 0).toFixed(2).replace('.', ',') %>" 
+                                                        <input type="text" name="items[<%= idx %>][price]" value="<%= formatMoney(item.price) %>" 
                                                                class="input-premium item-price-input money-mask" data-orc-id="<%= orc.id %>" oninput="recalcTotal('<%= orc.id %>')">
                                                     </div>
                                                     <div>
@@ -422,7 +428,7 @@
                                                    class="input-premium money-mask" 
                                                    style="background: #000; color: #fff; border-color: #fff; font-size: 18px; font-weight: 800;"
                                                    placeholder="R$ 0,00"
-                                                   value="<%= orc.total_price ? parseFloat(orc.total_price).toFixed(2).replace('.', ',') : '' %>">
+                                                   value="<%= formatMoney(orc.total_price) %>">
                                             <div style="font-size: 10px; color: #aaa; margin-top: 10px;">
                                                 Deixe em branco para usar o cálculo automático dos itens. Se preenchido, este valor será o total final da proposta.
                                             </div>
@@ -430,16 +436,15 @@
                                     </div>
 
                                     <div class="summary-box" style="text-align: left; background: #fafafa; border: 1px solid #ddd;">
-                                            <div style="text-align: right; border-left: 1px solid #eee; padding-left: 20px;">
-                                                <div style="font-size: 11px; color: #666; margin-bottom: 5px;">
-                                                    SUBTOTAL ITENS: <span id="subtotal-val-<%= orc.id %>">R$ <%= parseFloat(orc.original_price || orc.total_price).toFixed(2).replace('.', ',') %></span>
-                                                </div>
-                                                <div style="font-weight: 800; font-size: 14px; margin-top: 10px; color: #000;">
-                                                    TOTAL LÍQUIDO: <br>
-                                                    <span style="font-size: 22px;" id="recalc-total-<%= orc.id %>">
-                                                        R$ <%= parseFloat(orc.total_price).toFixed(2).replace('.', ',') %>
-                                                    </span>
-                                                </div>
+                                        <div style="text-align: right; border-left: 1px solid #eee; padding-left: 20px;">
+                                            <div style="font-size: 11px; font-weight: 600; color: #666; margin-bottom: 5px;">
+                                                SUBTOTAL ITENS: <span id="subtotal-val-<%= orc.id %>">R$ <%= formatMoney(orc.original_price || orc.total_price) %></span>
+                                            </div>
+                                            <div style="font-size: 14px; font-weight: 800; display: flex; justify-content: space-between; align-items: center;">
+                                                <span>TOTAL FINAL:</span>
+                                                <span id="recalc-total-<%= orc.id %>" style="color: #000;">
+                                                    R$ <%= formatMoney(orc.total_price) %>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>

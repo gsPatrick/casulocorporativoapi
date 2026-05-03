@@ -359,7 +359,11 @@ class OrcamentoService {
     const statusFilter = options.status;
 
     const where = { 
-      shopify_customer_id: customerId.toString(),
+      [Op.or]: [
+        { shopify_customer_id: customerId.toString() },
+        { consultor_id: customerId.toString() },
+        { especificador_id: customerId.toString() }
+      ],
       hidden_for_customer: false
     };
 

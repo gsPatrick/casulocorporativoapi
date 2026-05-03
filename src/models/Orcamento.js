@@ -126,6 +126,22 @@ const Orcamento = sequelize.define('Orcamento', {
     type: DataTypes.INTEGER,
     allowNull: true, // Se null, usa o padrão global
   },
+  consultor_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  especificador_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  consultor_name: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  especificador_name: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 }, {
   timestamps: true,
   tableName: 'orcamentos',

@@ -7,10 +7,13 @@ router.use((req, res, next) => {
 
 const orcamentoRoutes = require('../features/Orcamento/orcamento.routes');
 const adminRoutes = require('../features/Admin/admin.routes');
+const professionalRoutes = require('../features/Professional/professional.routes');
 
 // Rotas unificadas para suportar tanto chamadas diretas quanto via App Proxy
 router.use('/orcamento', orcamentoRoutes);
 router.use('/api/orcamento', orcamentoRoutes); 
+router.use('/pro', professionalRoutes); 
+router.use('/api/pro', professionalRoutes); 
 router.use('/admin', adminRoutes); // Dashboard e Adm (v4.0.0)
 router.use('/', adminRoutes);      // Entry Point do App (v4.1.0)
 

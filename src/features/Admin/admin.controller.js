@@ -202,10 +202,15 @@ class AdminController {
       }
 
       // 3. Persistir no Banco de Dados
+      let cleanTotal = total_price;
+      if (typeof total_price === 'string') {
+        cleanTotal = total_price.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
+      }
+
       await orcamento.update({
         line_items_json: updatedItems,
         original_price: subtotal,
-        total_price: total_price !== undefined ? parseFloat(total_price) : finalPrice,
+        total_price: cleanTotal !== undefined && cleanTotal !== "" ? parseFloat(cleanTotal) : finalPrice,
         show_prices_to_customer: show_prices_to_customer !== undefined ? show_prices_to_customer : orcamento.show_prices_to_customer,
         condicao_json: condicaoData,
         termos_contrato: termos_contrato,
