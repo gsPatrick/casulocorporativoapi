@@ -22,6 +22,9 @@ class OrcamentoController {
         return res.status(200).json({ success: true, message: 'Cadastro B2B concluído com sucesso' });
       }
 
+      // Injetar o domínio da loja (v12.85.0)
+      req.body.shop = req.query.shop || process.env.SHOPIFY_SHOP || 'casulo-concept.myshopify.com';
+
       const orcamento = await orcamentoService.createOrcamento(req.body);
       
       const dbTime = Date.now();

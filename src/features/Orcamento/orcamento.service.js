@@ -18,10 +18,10 @@ class OrcamentoService {
     // Se houver um ID de cliente mas o nome for nulo (Fluxo B2B Profissional), buscamos no Shopify
     if (data.customer_id && (!customerName || customerName === 'Cliente Shopify')) {
       try {
-        console.log(`[SERVICE B2B DEBUG]: Iniciando busca para ID: ${data.customer_id}`);
+        console.log(`[SERVICE B2B DEBUG]: Iniciando busca para ID: ${data.customer_id} na loja: ${data.shop}`);
         const shopifyAdmin = require('../../services/shopifyAdmin');
         const token = await shopifyAdmin.getAccessToken();
-        const shop = process.env.SHOPIFY_SHOP || 'casulo-concept.myshopify.com';
+        const shop = data.shop || process.env.SHOPIFY_SHOP || 'casulo-concept.myshopify.com';
         
         const response = await fetch(`https://${shop}/admin/api/2024-04/customers/${data.customer_id}.json`, {
           headers: { 'X-Shopify-Access-Token': token }
