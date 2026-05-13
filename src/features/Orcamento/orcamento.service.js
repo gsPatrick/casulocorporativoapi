@@ -6,10 +6,63 @@ const adminService = require('../Admin/admin.service');
 class OrcamentoService {
   async createOrcamento(data) {
     const startService = Date.now();
+    
+    // 1. Resolução de Dados do Cliente (v12.80.0)
+    let customerName = data.customer_metadata?.name || 
+                        (data.customer_metadata?.first_name ? `${data.customer_metadata.first_name} ${data.customer_metadata.last_name || ''}`.trim() : null) ||
+                        data.customer_name || 
+                        (data.lead?.nome ? `${data.lead.nome} ${data.lead.sobrenome || ''}`.trim() : null);
+
+    let customerEmail = data.customer_metadata?.email || data.customer_email || data.lead?.email || null;
+
+    // Se houver um ID de cliente mas o nome for nulo (Fluxo B2B Profissional), buscamos no Shopify
+    if (data.customer_id && (!customerName || customerName === 'Cliente Shopify')) {
+      try {
+        console.log(`[SERVICE B2B]: Resolvendo dados do cliente final ${data.customer_id} no Shopify...`);
+        const shopifyAdmin = require('../../services/shopifyAdmin');
+        const token = await shopifyAdmin.getAccessToken();
+        const shop = process.env.SHOPIFY_SHOP || 'casulo-concept.myshopify.com';
+        
+        const response = await fetch(`https://${shop}/admin/api/2024-04/customers/${data.customer_id}.json`, {
+          headers: { 'X-Shopify-Access-Token': token }
+        });
+        
+        if (response.ok) {
+          const { customer } = await response.json();
+          customerName = `${customer.first_name} ${customer.last_name || ''}`.trim();
+          customerEmail = customerEmail || customer.email;
+          data.customer_tags = (customer.tags || '').split(',').map(t => t.trim());
+        }
+      } catch (err) {
+        console.error('[SERVICE B2B ERROR]: Falha na pré-resolução do cliente:', err.message);
+      }
+    }
+
+    customerName = customerName || (data.customer_id ? 'Cliente Shopify' : 'Visitante');
+
+    // 2. Processamento de Itens e Snapshots
     const parsedItems = await this.parseItems(data.items);
     const originalPrice = this.calculateTotalPrice(parsedItems);
     
-    // 0. Buscar Condição Comercial Padrão (v5.0.0)
+    const orcamentoId = require('crypto').randomUUID();
+    const CartItem = require('../../models/CartItem');
+    const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
+        const vid = item.variant_id?.toString();
+        const pid = item.product_id?.toString();
+        let synced = null;
+        if (data.customer_id) synced = await CartItem.findOne({ where: { shopify_customer_id: data.customer_id.toString(), variant_id: vid } });
+        if (!synced && data.browser_id) synced = await CartItem.findOne({ where: { browser_id: data.browser_id.toString(), variant_id: vid } });
+        if (!synced && pid) {
+          const pidCriteria = data.customer_id ? { shopify_customer_id: data.customer_id.toString(), product_id: pid } : { browser_id: data.browser_id.toString(), product_id: pid };
+          synced = await CartItem.findOne({ where: pidCriteria, order: [['updatedAt', 'DESC']] });
+        }
+        if (synced && (synced.last_snapshot || synced.image_url)) return { ...item, custom_image: synced.last_snapshot || synced.image_url };
+        return item;
+    }));
+
+    const { items: finalItems, base64Map } = this.extractBase64Images(enrichedItems, orcamentoId);
+
+    // 3. Regras de Negócio (Vendedor, Condições, etc.)
     const Condicao = require('../../models/Condicao');
     const condicaoPadrao = await Condicao.findOne({ where: { is_default: true } });
     
@@ -19,94 +72,25 @@ class OrcamentoService {
     if (condicaoPadrao) {
       const valorCondicao = parseFloat(condicaoPadrao.valor);
       const ajuste = (subtotal * valorCondicao) / 100;
-      
-      if (condicaoPadrao.tipo === 'desconto') {
-        subtotal -= ajuste;
-      } else {
-        subtotal += ajuste;
-      }
-      
-      condicaoJson = {
-        id: condicaoPadrao.id,
-        nome: condicaoPadrao.nome,
-        tipo: condicaoPadrao.tipo,
-        valor: valorCondicao
-      };
-      
-      console.log(`[SERVICE B2B]: Aplicando Condição Padrão: ${condicaoPadrao.nome} (${valorCondicao}%)`);
+      if (condicaoPadrao.tipo === 'desconto') subtotal -= ajuste;
+      else subtotal += ajuste;
+      condicaoJson = { id: condicaoPadrao.id, nome: condicaoPadrao.nome, tipo: condicaoPadrao.tipo, valor: valorCondicao };
     }
     
-    // Novas Regras de Negócio: Descontos e Tags (v4.0.0)
-    const { vendedor, parceiro, customerTags: parsedTags } = this.parseBusinessTags(data.customer_tags || []);
+    const { vendedor, parceiro } = this.parseBusinessTags(data.customer_tags || []);
     const finalOriginalPrice = data.original_total_price ? parseFloat(data.original_total_price) : originalPrice;
     const finalLiquidPrice = data.total_price ? parseFloat(data.total_price) : subtotal;
 
-    // 1. Extrair Metadados B2B (v5.4.0)
     const metadata = data.customer_metadata?.metafields?.custom || {};
     const customerCode = metadata.codigo_do_cliente || (data.lead?.registration_type === 'b2b_completion' ? data.lead.codigo_cliente : null);
-    
-    // Gerar Short Code Personalizado: [COD][YYYY][SEQ]
     const shortCode = await this.generateShortCode(customerCode);
-
-    // 1. Persistir no Postgres
     
-    // Bypass Shopify 504 Timeout: Extraímos os Base64 pesados para processar em segundo plano
-    const orcamentoId = require('crypto').randomUUID();
-    const CartItem = require('../../models/CartItem');
-    
-    console.log(`[SERVICE DEBUG]: Iniciando processamento de ${parsedItems.length} itens para o Orçamento ID: ${orcamentoId}`);
-
-    const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
-        const vid = item.variant_id?.toString();
-        const pid = item.product_id?.toString();
-        
-        console.log(`[SERVICE DEBUG]: Recuperando snapshots para Item: ${item.title} (Variant: ${vid})`);
-        
-        let synced = null;
-        
-        // 1. Tenta por Variant ID (Configuração Exata)
-        if (data.customer_id) {
-          synced = await CartItem.findOne({ where: { shopify_customer_id: data.customer_id.toString(), variant_id: vid } });
-        }
-        if (!synced && data.browser_id) {
-          synced = await CartItem.findOne({ where: { browser_id: data.browser_id.toString(), variant_id: vid } });
-        }
-
-        // 2. Fallback por Product ID (A customização mais recente deste produto para este usuário)
-        if (!synced && pid) {
-          const pidCriteria = data.customer_id ? { shopify_customer_id: data.customer_id.toString(), product_id: pid } : { browser_id: data.browser_id.toString(), product_id: pid };
-          synced = await CartItem.findOne({ where: pidCriteria, order: [['updatedAt', 'DESC']] });
-        }
-        
-        if (synced && (synced.last_snapshot || synced.image_url)) {
-          return { ...item, custom_image: synced.last_snapshot || synced.image_url };
-        }
-        
-        return item;
-    }));
-
-    console.log(`[SERVICE DEBUG]: Extraindo Base64 e preparando persistência...`);
-    const { items: finalItems, base64Map } = this.extractBase64Images(enrichedItems, orcamentoId);
-
-    const dbStart = Date.now();
-    const customerName = data.customer_metadata?.name || 
-                        (data.customer_metadata?.first_name ? `${data.customer_metadata.first_name} ${data.customer_metadata.last_name || ''}`.trim() : null) ||
-                        data.customer_name || 
-                        (data.lead?.nome ? `${data.lead.nome} ${data.lead.sobrenome || ''}`.trim() : null) || 
-                        (data.customer_id ? 'Cliente Shopify' : 'Visitante');
-
-    const customerEmail = data.customer_metadata?.email || data.customer_email || data.lead?.email || null;
-
-    // Gera o Custom ID (v12.35.1)
     const year2Digits = new Date().getFullYear().toString().slice(-2);
     const seq = await adminService.generateNextProposalSequence();
-    const formattedSeq = seq.toString().padStart(2, '0');
-    const customId = `${customerCode || 'GUEST'}${year2Digits}${formattedSeq}`;
-    
+    const customId = `${customerCode || 'GUEST'}${year2Digits}${seq.toString().padStart(2, '0')}`;
     const expirationMinutes = await adminService.getExpirationMinutes();
 
-    console.log(`[SERVICE DEBUG]: Gravando no Postgres (Custom ID: ${customId})...`);
-
+    // 4. Persistência
     const orcamento = await Orcamento.create({
       id: orcamentoId,
       shopify_customer_id: data.customer_id ? data.customer_id.toString() : null,
@@ -118,8 +102,6 @@ class OrcamentoService {
       line_items_json: finalItems,
       total_price: finalLiquidPrice,
       original_price: finalOriginalPrice,
-      discount_amount: 0,
-      discount_category: null,
       short_code: shortCode,
       custom_id: customId,
       sequence_number: seq,
@@ -128,14 +110,12 @@ class OrcamentoService {
       customer_tags: data.customer_tags || [],
       status: 'analise',
       condicao_json: condicaoJson,
-      // Novos campos B2B
       customer_cnpj: metadata.cnpj || data.lead?.cnpj || null,
-      customer_company: metadata.empresa || data.lead?.empresa || data.lead?.razao_social || null,
+      customer_company: metadata.empresa || data.lead?.empresa || null,
       customer_address: metadata.endereco || data.lead?.endereco || null,
-      customer_cep: metadata.cep || metadata.cep_dot || data.lead?.cep || null,
+      customer_cep: metadata.cep || data.lead?.cep || null,
       customer_code: customerCode,
       expiration_minutes: expirationMinutes,
-      // Vínculos B2B (v12.55.0)
       consultor_id: data.consultor_id || null,
       consultor_name: data.consultor_name || null,
       especificador_id: data.especificador_id || null,
