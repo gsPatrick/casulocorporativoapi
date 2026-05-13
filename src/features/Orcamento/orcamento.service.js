@@ -18,7 +18,7 @@ class OrcamentoService {
     // Se houver um ID de cliente mas o nome for nulo (Fluxo B2B Profissional), buscamos no Shopify
     if (data.customer_id && (!customerName || customerName === 'Cliente Shopify')) {
       try {
-        console.log(`[SERVICE B2B]: Resolvendo dados do cliente final ${data.customer_id} no Shopify...`);
+        console.log(`[SERVICE B2B DEBUG]: Iniciando busca para ID: ${data.customer_id}`);
         const shopifyAdmin = require('../../services/shopifyAdmin');
         const token = await shopifyAdmin.getAccessToken();
         const shop = process.env.SHOPIFY_SHOP || 'casulo-concept.myshopify.com';
@@ -32,6 +32,9 @@ class OrcamentoService {
           customerName = `${customer.first_name} ${customer.last_name || ''}`.trim();
           customerEmail = customerEmail || customer.email;
           data.customer_tags = (customer.tags || '').split(',').map(t => t.trim());
+          console.log(`[SERVICE B2B DEBUG]: Shopify retornou: ${customerName} (Email: ${customerEmail})`);
+        } else {
+          console.error(`[SERVICE B2B DEBUG]: Erro API Shopify: ${response.status}`);
         }
       } catch (err) {
         console.error('[SERVICE B2B ERROR]: Falha na pré-resolução do cliente:', err.message);
@@ -89,6 +92,8 @@ class OrcamentoService {
     const seq = await adminService.generateNextProposalSequence();
     const customId = `${customerCode || 'GUEST'}${year2Digits}${seq.toString().padStart(2, '0')}`;
     const expirationMinutes = await adminService.getExpirationMinutes();
+    
+    console.log(`[SERVICE B2B FINAL CHECK]: Cliente=${customerName}, Consultor=${data.consultor_name}, Especificador=${data.especificador_name}`);
 
     // 4. Persistência
     const orcamento = await Orcamento.create({
