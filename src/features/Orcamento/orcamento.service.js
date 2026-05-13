@@ -53,11 +53,14 @@ class OrcamentoService {
     // Bypass Shopify 504 Timeout: Extraímos os Base64 pesados para processar em segundo plano
     const orcamentoId = require('crypto').randomUUID();
     const CartItem = require('../../models/CartItem');
+    
+    console.log(`[SERVICE DEBUG]: Iniciando processamento de ${parsedItems.length} itens para o Orçamento ID: ${orcamentoId}`);
+
     const enrichedItems = await Promise.all(parsedItems.map(async (item) => {
         const vid = item.variant_id?.toString();
         const pid = item.product_id?.toString();
         
-        console.log(`[SERVICE DEBUG]: Buscando snapshot - Variant: ${vid}, Product: ${pid}, CID: ${data.customer_id}, BID: ${data.browser_id}`);
+        console.log(`[SERVICE DEBUG]: Recuperando snapshots para Item: ${item.title} (Variant: ${vid})`);
         
         let synced = null;
         
@@ -76,16 +79,14 @@ class OrcamentoService {
         }
         
         if (synced && (synced.last_snapshot || synced.image_url)) {
-          console.log(`[SERVICE SUCCESS]: Snapshot recuperado para ${item.title} (Fallback: ${!synced.variant_id.includes(vid)})`);
           return { ...item, custom_image: synced.last_snapshot || synced.image_url };
         }
         
-        console.log(`[SERVICE INFO]: Nenhum snapshot encontrado para ${item.title}`);
         return item;
     }));
 
+    console.log(`[SERVICE DEBUG]: Extraindo Base64 e preparando persistência...`);
     const { items: finalItems, base64Map } = this.extractBase64Images(enrichedItems, orcamentoId);
-    console.log(`[${new Date().toISOString()}] [SERVICE]: Extração de Base64 concluída em ${Date.now() - startService}ms`);
 
     const dbStart = Date.now();
     const customerName = data.customer_metadata?.name || 
@@ -97,14 +98,14 @@ class OrcamentoService {
     const customerEmail = data.customer_metadata?.email || data.customer_email || data.lead?.email || null;
 
     // Gera o Custom ID (v12.35.1)
-    // Padrão: [Codigo do Cliente] + [Ano 2 dígitos] + [Sequencial 2+ dígitos]
     const year2Digits = new Date().getFullYear().toString().slice(-2);
     const seq = await adminService.generateNextProposalSequence();
     const formattedSeq = seq.toString().padStart(2, '0');
     const customId = `${customerCode || 'GUEST'}${year2Digits}${formattedSeq}`;
     
-    // Fixar o tempo de expiração no momento da criação da proposta (v5.6.0)
     const expirationMinutes = await adminService.getExpirationMinutes();
+
+    console.log(`[SERVICE DEBUG]: Gravando no Postgres (Custom ID: ${customId})...`);
 
     const orcamento = await Orcamento.create({
       id: orcamentoId,
@@ -133,9 +134,15 @@ class OrcamentoService {
       customer_address: metadata.endereco || data.lead?.endereco || null,
       customer_cep: metadata.cep || metadata.cep_dot || data.lead?.cep || null,
       customer_code: customerCode,
-      expiration_minutes: expirationMinutes
+      expiration_minutes: expirationMinutes,
+      // Vínculos B2B (v12.55.0)
+      consultor_id: data.consultor_id || null,
+      consultor_name: data.consultor_name || null,
+      especificador_id: data.especificador_id || null,
+      especificador_name: data.especificador_name || null
     });
-    console.log(`[${new Date().toISOString()}] [SERVICE]: Escrita no Postgres concluída em ${Date.now() - dbStart}ms (Total: ${Date.now() - startService}ms)`);
+    
+    console.log(`[SERVICE SUCCESS]: Orçamento #${orcamento.id} criado com sucesso em ${Date.now() - startService}ms`);
 
     // 2. Processar tarefas secundárias em Segundo Plano (Background)
     this.processPostCreationTasks(orcamento, base64Map).catch(err => {
@@ -260,8 +267,9 @@ class OrcamentoService {
     if (!Array.isArray(items)) return [];
     
     const axios = require('axios');
-    const shop = process.env.SHOPIFY_SHOP || 'casulo-corporativa.myshopify.com';
-    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN || process.env.SHOPIFY_API_SECRET; // Usando o que estiver disponível
+    const shopifyAdminService = require('../../services/shopifyAdmin');
+    const accessToken = await shopifyAdminService.getAccessToken();
+    const shop = process.env.SHOPIFY_HOST_NAME || '9bf7e4-75.myshopify.com';
 
     return await Promise.all(items.map(async (item) => {
       let especificacao_generica = item.especificacao_generica || null;
@@ -272,6 +280,7 @@ class OrcamentoService {
       if (item.product_id && accessToken) {
         try {
           const productId = item.product_id.toString().replace('gid://shopify/Product/', '');
+          console.log(`[ORCAMENTO SERVICE]: Buscando dados no Shopify para Produto ${productId}...`);
           
           // 1. Buscar Produto (para descrição)
           const productRes = await axios({
@@ -280,6 +289,7 @@ class OrcamentoService {
             headers: { 'X-Shopify-Access-Token': accessToken }
           });
           product_description = productRes.data.product.body_html || '';
+          console.log(`[ORCAMENTO SERVICE]: Descrição recuperada para ${productId}`);
 
           // 2. Buscar Metafields
           const metafieldsRes = await axios({
@@ -296,9 +306,10 @@ class OrcamentoService {
           
           if (metafields_data.especificacao_generica) {
             especificacao_generica = metafields_data.especificacao_generica;
+            console.log(`[ORCAMENTO SERVICE]: Especificação Genérica encontrada para ${productId}`);
           }
         } catch (error) {
-          console.error(`[ORCAMENTO SERVICE]: Falha ao buscar dados do produto ${item.product_id}:`, error.message);
+          console.error(`[ORCAMENTO SERVICE ERROR]: Falha ao buscar dados do produto ${item.product_id}:`, error.response?.status || error.message);
         }
       }
 
@@ -633,12 +644,12 @@ class OrcamentoService {
 
   async syncB2BCustomerData(customerId, leadData) {
     const axios = require('axios');
-    const shop = process.env.SHOPIFY_HOST_NAME || 'casulo-corporativa.myshopify.com';
-    // O token correto para chamadas Admin deve ser o shpat_...
-    const accessToken = process.env.SHOPIFY_API_SECRET; 
+    const shopifyAdminService = require('../../services/shopifyAdmin');
+    const shop = process.env.SHOPIFY_HOST_NAME || '9bf7e4-75.myshopify.com';
+    const accessToken = await shopifyAdminService.getAccessToken(); 
 
-    if (!accessToken || !accessToken.startsWith('shpat_')) {
-       console.error('[SERVICE B2B ERROR]: Token inválido. Certifique-se de usar o Admin API Access Token (shpat_...) no .env.');
+    if (!accessToken) {
+       console.error('[SERVICE B2B ERROR]: Não foi possível obter o Access Token do Shopify.');
        return;
     }
 
