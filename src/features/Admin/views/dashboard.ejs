@@ -236,6 +236,8 @@
                     <th>Data</th>
                     <th>Ref</th>
                     <th>Cliente / Empresa</th>
+                    <th>Consultor</th>
+                    <th>Especificador</th>
                     <th>Vendedor</th>
                     <th>Status</th>
                     <th>Total</th>
@@ -248,7 +250,7 @@
                         onclick="toggleEdit('<%= orc.id %>')"
                         data-status="<%= orc.status %>"
                         data-customer="<%= orc.customer_type || 'convidado' %>"
-                        data-search="<%= (orc.customer_name || '').toLowerCase() %> <%= (orc.customer_email || '').toLowerCase() %> <%= (orc.custom_id || '').toLowerCase() %> <%= (orc.id || '').substring(0,8).toLowerCase() %> <%= (orc.vendedor || '').toLowerCase() %> <%= (orc.customer_tags || []).join(' ').toLowerCase() %> <%= (orc.lead_json?.empresa || '').toLowerCase() %> <%= (orc.lead_json?.cep || '').toLowerCase() %>"
+                        data-search="<%= (orc.customer_name || '').toLowerCase() %> <%= (orc.customer_email || '').toLowerCase() %> <%= (orc.consultor_name || '').toLowerCase() %> <%= (orc.especificador_name || '').toLowerCase() %> <%= (orc.custom_id || '').toLowerCase() %> <%= (orc.id || '').substring(0,8).toLowerCase() %> <%= (orc.vendedor || '').toLowerCase() %> <%= (orc.customer_tags || []).join(' ').toLowerCase() %> <%= (orc.lead_json?.empresa || '').toLowerCase() %> <%= (orc.lead_json?.cep || '').toLowerCase() %>"
                     >
                         <td style="font-weight: 500;"><%= new Date(orc.createdAt).toLocaleDateString('pt-BR') %></td>
                         <td style="font-family: monospace; font-size: 13px; font-weight: 700; color: #000;">
@@ -280,6 +282,12 @@
                                     <span style="font-size: 9px; color: #d32f2f; background: #fdecea; border: 1px solid #d32f2f; padding: 1px 4px; border-radius: 2px; font-weight: 700;">OCULTO P/ CLIENTE</span>
                                 <% } %>
                             </div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 500;"><%= orc.consultor_name || '-' %></div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 500;"><%= orc.especificador_name || '-' %></div>
                         </td>
                         <td><%= orc.vendedor || '-' %></td>
                         <td>
