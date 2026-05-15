@@ -313,7 +313,7 @@
                                 <a href="/api/orcamento/<%= orc.id %>/pdf" target="_blank" class="btn-black btn-outline" onclick="event.stopPropagation()">
                                     <i data-lucide="file-text"></i> PDF
                                 </a>
-                                <% if (orc.status === 'pendente') { %>
+                                <% if (['pendente', 'analise', 'em_analise', 'revisado'].includes(orc.status)) { %>
                                     <button onclick="changeStatus('<%= orc.id %>', 'aprovado'); event.stopPropagation();" class="btn-black" id="btn-approve-<%= orc.id %>">
                                         <i data-lucide="check"></i> Aprovar
                                     </button>
@@ -554,7 +554,7 @@
                     </div>
                     <div>
                         <label class="label-premium">Valor (%)</label>
-                        <input type="number" id="cond-valor" class="input-premium" step="0.01" required placeholder="0.00">
+                        <input type="number" id="cond-valor" class="input-premium" step="0.01" min="0" required placeholder="0.00">
                     </div>
                 </div>
                 <div style="margin-bottom: 20px;">
@@ -749,7 +749,7 @@
                     const result = await response.json();
                     document.getElementById(`display-total-${id}`).innerText = result.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                     alert('Orçamento atualizado e novo PDF enviado ao cliente!');
-                    toggleEdit(id);
+                    window.location.reload();
                 } else {
                     alert('Erro ao salvar orçamento.');
                 }
@@ -776,6 +776,7 @@
                     badge.innerText = newStatus;
                     badge.className = `status-badge status-${newStatus}`;
                     alert('Status atualizado!');
+                    window.location.reload();
                 }
             } catch (err) {
                 alert(`Erro: ${err.message}`);

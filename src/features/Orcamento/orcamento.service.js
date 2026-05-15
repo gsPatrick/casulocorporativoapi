@@ -33,6 +33,23 @@ class OrcamentoService {
           customerEmail = customerEmail || customer.email;
           data.customer_tags = (customer.tags || '').split(',').map(t => t.trim());
           console.log(`[SERVICE B2B DEBUG]: Shopify retornou: ${customerName} (Email: ${customerEmail})`);
+
+          // Buscar Código do Cliente via Metafields (v12.90.0)
+          try {
+            const metaRes = await fetch(`https://${shop}/admin/api/2024-04/customers/${data.customer_id}/metafields.json`, {
+              headers: { 'X-Shopify-Access-Token': token }
+            });
+            if (metaRes.ok) {
+              const { metafields } = await metaRes.json();
+              const codeMeta = metafields.find(m => m.namespace === 'custom' && m.key === 'codigo_do_cliente');
+              if (codeMeta) {
+                data.resolved_customer_code = codeMeta.value;
+                console.log(`[SERVICE B2B]: Código do cliente recuperado: ${data.resolved_customer_code}`);
+              }
+            }
+          } catch (e) {
+            console.error('[SERVICE B2B ERROR]: Falha ao buscar metafields:', e.message);
+          }
         } else {
           console.error(`[SERVICE B2B DEBUG]: Erro API Shopify: ${response.status}`);
         }
@@ -85,7 +102,7 @@ class OrcamentoService {
     const finalLiquidPrice = data.total_price ? parseFloat(data.total_price) : subtotal;
 
     const metadata = data.customer_metadata?.metafields?.custom || {};
-    const customerCode = metadata.codigo_do_cliente || (data.lead?.registration_type === 'b2b_completion' ? data.lead.codigo_cliente : null);
+    const customerCode = data.resolved_customer_code || metadata.codigo_do_cliente || (data.lead?.registration_type === 'b2b_completion' ? data.lead.codigo_cliente : null);
     const shortCode = await this.generateShortCode(customerCode);
     
     const year2Digits = new Date().getFullYear().toString().slice(-2);
@@ -363,11 +380,45 @@ class OrcamentoService {
       hidden_for_customer: false
     };
 
+    // --- B2B Visibility Logic ---
+    let isAprovado = false;
+    let isRestritoOuTemporario = false;
+
+    try {
+      const shopifyAdmin = require('../../services/shopifyAdmin');
+      const token = await shopifyAdmin.getAccessToken();
+      const shop = process.env.SHOPIFY_SHOP || 'casulo-concept.myshopify.com';
+      
+      const response = await fetch(`https://${shop}/admin/api/2024-04/customers/${customerId}.json`, {
+        headers: { 'X-Shopify-Access-Token': token }
+      });
+      
+      if (response.ok) {
+        const { customer } = await response.json();
+        const tags = (customer.tags || '').toLowerCase();
+        isAprovado = tags.includes('aprovado');
+        isRestritoOuTemporario = tags.includes('acesso-restrito') || tags.includes('acesso_temporario') || tags.includes('acesso-temporario');
+      }
+    } catch (e) {
+      console.error('[SERVICE B2B ERROR]: Falha ao buscar tags do cliente para listagem:', e.message);
+    }
+
     if (statusFilter && statusFilter !== 'todos') {
       where.status = statusFilter;
+      // Se for restrito/temporário e tentou filtrar um status diferente de aprovado, e não é aprovado
+      if (!isAprovado && isRestritoOuTemporario && statusFilter !== 'aprovado') {
+        where.status = 'none_match_rule'; // Hack to return empty array
+      }
     } else {
-      where.status = { [Op.in]: ['aprovado', 'finalizado', 'enviado', 'cancelado', 'pendente', 'analise', 'expirado'] };
+      if (isAprovado) {
+        where.status = { [Op.in]: ['aprovado', 'finalizado', 'enviado', 'cancelado', 'pendente', 'analise', 'expirado'] };
+      } else if (isRestritoOuTemporario) {
+        where.status = 'aprovado'; // Só vê se o admin já aprovou
+      } else {
+        where.status = { [Op.in]: ['aprovado', 'finalizado', 'enviado', 'cancelado', 'pendente', 'analise', 'expirado'] };
+      }
     }
+    // ----------------------------
 
     const { count, rows } = await Orcamento.findAndCountAll({
       where,
@@ -407,8 +458,16 @@ class OrcamentoService {
   }
 
   async updateOrcamento(id, customerId, data) {
+    const { Op } = require('sequelize');
     const orcamento = await Orcamento.findOne({ 
-      where: { id: id, shopify_customer_id: customerId } 
+      where: { 
+        id: id,
+        [Op.or]: [
+          { shopify_customer_id: customerId.toString() },
+          { consultor_id: customerId.toString() },
+          { especificador_id: customerId.toString() }
+        ]
+      } 
     });
     
     if (!orcamento) throw new Error('Orçamento não encontrado');
@@ -426,8 +485,16 @@ class OrcamentoService {
   }
 
   async submitOrcamento(id, customerId) {
+    const { Op } = require('sequelize');
     const orcamento = await Orcamento.findOne({ 
-      where: { id: id, shopify_customer_id: customerId } 
+      where: { 
+        id: id,
+        [Op.or]: [
+          { shopify_customer_id: customerId.toString() },
+          { consultor_id: customerId.toString() },
+          { especificador_id: customerId.toString() }
+        ]
+      } 
     });
     
     if (!orcamento) throw new Error('Orçamento não encontrado');
@@ -438,8 +505,16 @@ class OrcamentoService {
   }
 
   async cancelOrcamento(id, customerId) {
+    const { Op } = require('sequelize');
     const orcamento = await Orcamento.findOne({ 
-      where: { id: id, shopify_customer_id: customerId } 
+      where: { 
+        id: id,
+        [Op.or]: [
+          { shopify_customer_id: customerId.toString() },
+          { consultor_id: customerId.toString() },
+          { especificador_id: customerId.toString() }
+        ]
+      } 
     });
     
     if (!orcamento) throw new Error('Orçamento não encontrado');
@@ -454,8 +529,16 @@ class OrcamentoService {
   }
 
   async hideOrcamento(id, customerId) {
+    const { Op } = require('sequelize');
     const orcamento = await Orcamento.findOne({ 
-      where: { id: id, shopify_customer_id: customerId } 
+      where: { 
+        id: id,
+        [Op.or]: [
+          { shopify_customer_id: customerId.toString() },
+          { consultor_id: customerId.toString() },
+          { especificador_id: customerId.toString() }
+        ]
+      } 
     });
     
     if (!orcamento) throw new Error('Orçamento não encontrado');

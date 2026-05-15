@@ -7,8 +7,8 @@
     %>
         <!-- BARRA DE AMBIENTE -->
         <div style="border-top: 2px solid #000; border-bottom: 1px solid #000; padding: 4px 10px; margin-top: 15px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: baseline; background: #fdfdfd;">
-            <span style="font-size: 11px; font-weight: bold; text-transform: uppercase;"><%= currentCategory %></span>
-            <span style="font-size: 9px; font-weight: bold; color: #999;">CATEGORIA / AMBIENTE</span>
+            <span style="font-size: 11px; font-weight: bold; text-transform: uppercase; color: #000;"><%= currentCategory %></span>
+            <span style="font-size: 9px; font-weight: bold; color: #000;">CATEGORIA / AMBIENTE</span>
         </div>
     <% } %>
 
@@ -44,7 +44,7 @@
 
                     <div style="display: flex; justify-content: space-between;">
                         <!-- BULLETS (COLUNA 1) -->
-                        <div style="flex: 1; font-size: 9.5px; line-height: 1.4; color: #333; padding-right: 15px;">
+                        <div style="flex: 1; font-size: 9.5px; line-height: 1.4; color: #000; padding-right: 15px;">
                             <% if (item.technical_specification) { 
                                 const specs = item.technical_specification.split('\n').filter(line => line.trim());
                                 specs.forEach(spec => {
@@ -54,13 +54,13 @@
                         </div>
 
                         <!-- FINANCEIRO NA LATERAL (DIREITA) -->
-                        <div style="flex: 0 0 250px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid #f9f9f9; padding-left: 15px; font-size: 9px;">
+                        <div style="flex: 0 0 250px; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid #f9f9f9; padding-left: 15px; font-size: 9px; color: #000;">
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="color: #666;">Qtde:</span>
+                                <span style="color: #000;">Qtde:</span>
                                 <strong><%= item.quantity %></strong>
                             </div>
                             <div style="display: flex; justify-content: space-between;">
-                                <span style="color: #666;">Unitário:</span>
+                                <span style="color: #000;">Unitário:</span>
                                 <strong><%= item.unit_price_formatted %></strong>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-top: 5px; padding-top: 5px; border-top: 1px solid #eee;">

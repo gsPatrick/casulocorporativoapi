@@ -141,8 +141,9 @@ class PdfService {
       const totalItem = unitPrice * (item.quantity || 1);
 
       // Regra de Ouro: Se não pode ver preços, mostramos 'Sob Consulta'
-      const unitFormatted = canSeePrices && unitPrice > 0 ? `R$ ${unitPrice.toFixed(2).replace('.', ',')}` : 'Sob Consulta';
-      const totalFormatted = canSeePrices && totalItem > 0 ? `R$ ${totalItem.toFixed(2).replace('.', ',')}` : 'Sob Consulta';
+      const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+      const unitFormatted = canSeePrices && unitPrice > 0 ? formatter.format(unitPrice) : 'Sob Consulta';
+      const totalFormatted = canSeePrices && totalItem > 0 ? formatter.format(totalItem) : 'Sob Consulta';
 
       items.push({
         ...item,
@@ -172,9 +173,9 @@ class PdfService {
       short_code: orcamento.short_code,
       items,
       condicao: null, // Ocultar do template (v5.5.0)
-      subtotal_formatted: canSeePrices ? `R$ ${subtotal.toFixed(2).replace('.', ',')}` : 'Sob Consulta',
+      subtotal_formatted: canSeePrices ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(subtotal) : 'Sob Consulta',
       termos_contrato: orcamento.termos_contrato || '',
-      total_formatted: canSeePrices && totalBudget > 0 ? `R$ ${totalBudget.toFixed(2).replace('.', ',')}` : 'A Definir (Sob Consulta)'
+      total_formatted: canSeePrices && totalBudget > 0 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalBudget) : 'A Definir (Sob Consulta)'
     };
   }
 }

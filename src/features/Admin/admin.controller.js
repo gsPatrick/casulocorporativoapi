@@ -362,6 +362,10 @@ class AdminController {
       const session = await this.validateSession(req, res);
       if (!session) return;
 
+      if (valor === undefined || valor === null || valor === '') {
+        return res.status(400).json({ error: 'Valor é obrigatório e pode ser 0' });
+      }
+
       if (is_default) {
         await Condicao.update({ is_default: false }, { where: {} });
       }
@@ -412,6 +416,10 @@ class AdminController {
       
       const session = await this.validateSession(req, res);
       if (!session) return;
+
+      if (valor === undefined || valor === null || valor === '') {
+        return res.status(400).json({ error: 'Valor é obrigatório e pode ser 0' });
+      }
 
       const condicao = await Condicao.findByPk(id);
       if (!condicao) return res.status(404).json({ error: 'Condição não encontrada' });
