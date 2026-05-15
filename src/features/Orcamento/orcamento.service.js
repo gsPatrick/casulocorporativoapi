@@ -370,15 +370,25 @@ class OrcamentoService {
     const page = parseInt(options.page) || 1;
     const offset = (page - 1) * limit;
     const statusFilter = options.status;
+    const roleFilter = options.role;
 
     const where = { 
-      [Op.or]: [
+      hidden_for_customer: false
+    };
+
+    if (roleFilter === 'cliente') {
+      where.shopify_customer_id = customerId.toString();
+    } else if (roleFilter === 'consultor') {
+      where.consultor_id = customerId.toString();
+    } else if (roleFilter === 'especificador') {
+      where.especificador_id = customerId.toString();
+    } else {
+      where[Op.or] = [
         { shopify_customer_id: customerId.toString() },
         { consultor_id: customerId.toString() },
         { especificador_id: customerId.toString() }
-      ],
-      hidden_for_customer: false
-    };
+      ];
+    }
 
     // --- B2B Visibility Logic ---
     let isAprovado = false;
