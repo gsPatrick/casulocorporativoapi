@@ -107,7 +107,7 @@ class OrcamentoService {
     
     const year2Digits = new Date().getFullYear().toString().slice(-2);
     const seq = await adminService.generateNextProposalSequence();
-    const customId = `${customerCode || 'GUEST'}${year2Digits}${seq.toString().padStart(2, '0')}`;
+    const customId = `${customerCode || 'GUEST'}${year2Digits}${seq}`;
     const expirationMinutes = await adminService.getExpirationMinutes();
     
     console.log(`[SERVICE B2B FINAL CHECK]: Cliente=${customerName}, Consultor=${data.consultor_name}, Especificador=${data.especificador_name}`);

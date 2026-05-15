@@ -65,7 +65,7 @@ class OrcamentoController {
 
       // Configurar headers para download do PDF
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename=proposta-casulo-${id}.pdf`);
+      res.setHeader('Content-Disposition', `attachment; filename=Proposta-${orcamento.custom_id || id}.pdf`);
 
       // Gerar e streamar o PDF direto para a resposta
       const pdfService = require('./pdf.service');
