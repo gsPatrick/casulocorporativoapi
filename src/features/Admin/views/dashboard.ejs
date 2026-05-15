@@ -253,7 +253,6 @@
                     <th>Cliente / Empresa</th>
                     <th>Consultor</th>
                     <th>Especificador</th>
-                    <th>Vendedor</th>
                     <th>Status</th>
                     <th>Total</th>
                     <th style="text-align: right;">Ações</th>
@@ -265,7 +264,7 @@
                         onclick="toggleEdit('<%= orc.id %>')"
                         data-status="<%= orc.status %>"
                         data-customer="<%= orc.customer_type || 'convidado' %>"
-                        data-search="<%= (orc.customer_name || '').toLowerCase() %> <%= (orc.customer_email || '').toLowerCase() %> <%= (orc.consultor_name || '').toLowerCase() %> <%= (orc.especificador_name || '').toLowerCase() %> <%= (orc.custom_id || '').toLowerCase() %> <%= (orc.id || '').substring(0,8).toLowerCase() %> <%= (orc.vendedor || '').toLowerCase() %> <%= (orc.customer_tags || []).join(' ').toLowerCase() %> <%= (orc.lead_json?.empresa || '').toLowerCase() %> <%= (orc.lead_json?.cep || '').toLowerCase() %>"
+                        data-search="<%= (orc.customer_name || '').toLowerCase() %> <%= (orc.customer_email || '').toLowerCase() %> <%= (orc.consultor_name || '').toLowerCase() %> <%= (orc.especificador_name || '').toLowerCase() %> <%= (orc.custom_id || '').toLowerCase() %> <%= (orc.id || '').substring(0,8).toLowerCase() %> <%= (orc.customer_tags || []).join(' ').toLowerCase() %> <%= (orc.lead_json?.empresa || '').toLowerCase() %> <%= (orc.lead_json?.cep || '').toLowerCase() %>"
                     >
                         <td style="font-weight: 500;"><%= new Date(orc.createdAt).toLocaleDateString('pt-BR') %></td>
                         <td style="font-family: monospace; font-size: 13px; font-weight: 700; color: #000;">
@@ -299,7 +298,6 @@
                                 <%= (orc.especificador_name || '-').split(' ')[0] %>
                             </span>
                         </td>
-                        <td><%= orc.vendedor || '-' %></td>
                         <td>
                             <span class="status-badge status-<%= orc.status %>" id="badge-<%= orc.id %>">
                                 <%= orc.status %>
@@ -323,7 +321,7 @@
                     </tr>
                     <!-- Row de Edição -->
                     <tr class="edit-row" id="edit-row-<%= orc.id %>">
-                        <td colspan="7">
+                        <td colspan="8">
                             <div class="edit-inner">
                                 <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 20px; text-transform: uppercase; display: flex; align-items: center; gap: 8px;">
                                     <i data-lucide="edit-3"></i> Detalhes e Edição do Orçamento
