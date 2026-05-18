@@ -569,7 +569,93 @@
         </div>
     </div>
 
+    <!-- TOAST DE NOTIFICAÇÃO -->
+    <div id="admin-toast" style="display: none; position: fixed; top: 30px; right: 30px; z-index: 999999; padding: 16px 24px; background: #000; color: #fff; border-radius: 4px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); font-size: 13px; font-weight: 600; align-items: center; gap: 12px; transition: all 0.3s ease; transform: translateY(-20px); opacity: 0;">
+        <i data-lucide="check-circle" style="color: #48bb78; width: 18px; height: 18px;"></i>
+        <span id="admin-toast-msg">Sucesso!</span>
+    </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE AÇÃO/EXCLUSÃO -->
+    <div id="admin-confirm-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999999; align-items: center; justify-content: center; backdrop-filter: blur(3px);">
+        <div style="background: #fff; width: 420px; padding: 32px; border: 2px solid #000; border-radius: 0; box-shadow: 0 20px 50px rgba(0,0,0,0.3); text-align: left;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <div style="background: #fee2e2; padding: 10px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #dc2626;" id="admin-confirm-icon-bg">
+                    <i data-lucide="alert-triangle" style="width: 24px; height: 24px;" id="admin-confirm-icon"></i>
+                </div>
+                <h3 id="admin-confirm-title" style="font-size: 16px; font-weight: 800; text-transform: uppercase; margin: 0; color: #111;">Confirmação</h3>
+            </div>
+            <p id="admin-confirm-desc" style="font-size: 13px; color: #555; line-height: 1.5; margin: 0 0 28px 0;">Tem certeza que deseja executar esta ação? Esta operação não pode ser desfeita.</p>
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="button" class="btn-black btn-outline" style="padding: 12px 20px;" onclick="closeConfirmModal()">Cancelar</button>
+                <button type="button" id="admin-confirm-btn" class="btn-black" style="padding: 12px 24px; background: #dc2626; border-color: #dc2626; color: #fff;">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        function showToast(msg, isReload = false) {
+            if (isReload) {
+                sessionStorage.setItem('admin_toast_msg', msg);
+                location.reload();
+                return;
+            }
+            const toast = document.getElementById('admin-toast');
+            document.getElementById('admin-toast-msg').innerText = msg;
+            toast.style.display = 'flex';
+            setTimeout(() => {
+                toast.style.transform = 'translateY(0)';
+                toast.style.opacity = '1';
+                lucide.createIcons();
+            }, 10);
+            setTimeout(() => {
+                toast.style.transform = 'translateY(-20px)';
+                toast.style.opacity = '0';
+                setTimeout(() => { toast.style.display = 'none'; }, 300);
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const pendingToast = sessionStorage.getItem('admin_toast_msg');
+            if (pendingToast) {
+                sessionStorage.removeItem('admin_toast_msg');
+                showToast(pendingToast);
+            }
+        });
+
+        let confirmActionCallback = null;
+        function openConfirmModal(title, desc, callback, isDelete = true) {
+            document.getElementById('admin-confirm-title').innerText = title;
+            document.getElementById('admin-confirm-desc').innerText = desc;
+            const btn = document.getElementById('admin-confirm-btn');
+            const iconBg = document.getElementById('admin-confirm-icon-bg');
+            if (isDelete) {
+                btn.style.background = '#dc2626';
+                btn.style.borderColor = '#dc2626';
+                btn.innerText = 'Sim, Excluir';
+                iconBg.style.background = '#fee2e2';
+                iconBg.style.color = '#dc2626';
+            } else {
+                btn.style.background = '#000';
+                btn.style.borderColor = '#000';
+                btn.innerText = 'Sim, Confirmar';
+                iconBg.style.background = '#e2e8f0';
+                iconBg.style.color = '#0f172a';
+            }
+            confirmActionCallback = callback;
+            document.getElementById('admin-confirm-modal').style.display = 'flex';
+            lucide.createIcons();
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('admin-confirm-modal').style.display = 'none';
+            confirmActionCallback = null;
+        }
+
+        document.getElementById('admin-confirm-btn')?.addEventListener('click', () => {
+            if (confirmActionCallback) confirmActionCallback();
+            closeConfirmModal();
+        });
+
         lucide.createIcons();
         
         const AppBridgeUtils = window['app-bridge-utils'];
@@ -747,13 +833,12 @@
                 if (response.ok) {
                     const result = await response.json();
                     document.getElementById(`display-total-${id}`).innerText = result.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    alert('Orçamento atualizado e novo PDF enviado ao cliente!');
-                    window.location.reload();
+                    showToast('Orçamento atualizado e novo PDF enviado ao cliente!', true);
                 } else {
-                    alert('Erro ao salvar orçamento.');
+                    showToast('Erro ao salvar orçamento.');
                 }
             } catch (err) {
-                alert(`Erro: ${err.message}`);
+                showToast(`Erro: ${err.message}`);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
@@ -761,25 +846,32 @@
             }
         }
 
-        async function changeStatus(id, newStatus) {
-            const badge = document.getElementById(`badge-${id}`);
-            if (!confirm(`Deseja alterar para "${newStatus}"?`)) return;
-            try {
-                const token = await getAuthenticatedToken();
-                const response = await fetch(`${window.location.origin}/admin/orcamento/${id}/status`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ status: newStatus })
-                });
-                if (response.ok) {
-                    badge.innerText = newStatus;
-                    badge.className = `status-badge status-${newStatus}`;
-                    alert('Status atualizado!');
-                    window.location.reload();
-                }
-            } catch (err) {
-                alert(`Erro: ${err.message}`);
-            }
+        function changeStatus(id, newStatus) {
+            openConfirmModal(
+                'Alterar Status do Orçamento',
+                `Deseja realmente alterar o status deste orçamento para "${newStatus}"?`,
+                async () => {
+                    const badge = document.getElementById(`badge-${id}`);
+                    try {
+                        const token = await getAuthenticatedToken();
+                        const response = await fetch(`${window.location.origin}/admin/orcamento/${id}/status`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                        if (response.ok) {
+                            badge.innerText = newStatus;
+                            badge.className = `status-badge status-${newStatus}`;
+                            showToast(`Status atualizado para ${newStatus}!`, true);
+                        } else {
+                            showToast('Erro ao atualizar status.');
+                        }
+                    } catch (err) {
+                        showToast(`Erro: ${err.message}`);
+                    }
+                },
+                false
+            );
         }
 
         // --- LÓGICA DE CONDICÕES ---
@@ -840,25 +932,35 @@
                 });
 
                 if (response.ok) {
-                    location.reload(); // Recarregar para atualizar a lista
+                    showToast(id ? 'Condição comercial atualizada com sucesso!' : 'Nova condição comercial criada com sucesso!', true);
                 } else {
-                    alert('Erro ao salvar condição.');
+                    showToast('Erro ao salvar condição.');
                 }
             } catch (err) {
-                alert(err.message);
+                showToast(`Erro: ${err.message}`);
             }
         }
 
-        async function deleteCondicao(id) {
-            if (!confirm('Deseja excluir esta condição?')) return;
-            try {
-                const token = await getAuthenticatedToken();
-                const response = await fetch(`${window.location.origin}/admin/condicoes/${id}/delete`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (response.ok) location.reload();
-            } catch (err) { alert(err.message); }
+        function deleteCondicao(id) {
+            openConfirmModal(
+                'Excluir Condição Comercial',
+                'Tem certeza que deseja excluir esta condição comercial? Esta operação não pode ser desfeita.',
+                async () => {
+                    try {
+                        const token = await getAuthenticatedToken();
+                        const response = await fetch(`${window.location.origin}/admin/condicoes/${id}/delete`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (response.ok) {
+                            showToast('Condição comercial excluída com sucesso!', true);
+                        } else {
+                            showToast('Erro ao excluir condição.');
+                        }
+                    } catch (err) { showToast(`Erro: ${err.message}`); }
+                },
+                true
+            );
         }
 
         async function setDefaultCondicao(id) {
@@ -868,8 +970,8 @@
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (response.ok) location.reload();
-            } catch (err) { alert(err.message); }
+                if (response.ok) showToast('Condição padrão definida com sucesso!', true);
+            } catch (err) { showToast(`Erro: ${err.message}`); }
         }
 
         // --- LÓGICA DE CONFIGURAÇÕES (ID SEQUENCIAL) ---
@@ -976,13 +1078,13 @@
                 });
 
                 if (response.ok) {
-                    alert('Configurações salvas com sucesso!');
+                    showToast('Configurações salvas com sucesso!');
                     loadSettings(currentOffset);
                 } else {
-                    alert('Erro ao salvar as configurações.');
+                    showToast('Erro ao salvar as configurações.');
                 }
             } catch (err) {
-                alert('Falha na comunicação: ' + err.message);
+                showToast('Falha na comunicação: ' + err.message);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;

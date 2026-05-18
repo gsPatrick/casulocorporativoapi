@@ -852,27 +852,12 @@ class OrcamentoService {
 
     const gid = customerId.toString().startsWith('gid://') ? customerId : `gid://shopify/Customer/${customerId}`;
 
-    const metafields = [];
-    if (data.cnpj !== undefined) metafields.push({ namespace: 'custom', key: 'cnpj', type: 'number_integer', value: String(data.cnpj || '').replace(/\D/g, '') });
-    if (data.empresa !== undefined) metafields.push({ namespace: 'custom', key: 'empresa', type: 'single_line_text_field', value: String(data.empresa || '') });
-    if (data.endereco !== undefined) metafields.push({ namespace: 'custom', key: 'endereco', type: 'single_line_text_field', value: String(data.endereco || '') });
-    if (data.cep !== undefined) metafields.push({ namespace: 'custom', key: 'cep', type: 'number_integer', value: String(data.cep || '').replace(/\D/g, '') });
-
+    // 1. ATUALIZAR DADOS BÁSICOS DO CLIENTE (firstName, lastName)
     const input = { id: gid };
     if (data.firstName !== undefined) input.firstName = String(data.firstName || '');
     if (data.lastName !== undefined) input.lastName = String(data.lastName || '');
-    
-    let cleanPhone = String(data.phone || '').trim();
-    if (cleanPhone && !cleanPhone.startsWith('+')) {
-      const digits = cleanPhone.replace(/[^\d]/g, '');
-      if (digits.length >= 10) cleanPhone = '+55' + digits;
-      else cleanPhone = null;
-    }
-    if (cleanPhone) input.phone = cleanPhone;
 
-    if (metafields.length > 0) input.metafields = metafields;
-
-    const mutation = `
+    const mutationCustomer = `
       mutation customerUpdate($input: CustomerInput!) {
         customerUpdate(input: $input) {
           customer { id firstName lastName phone }
@@ -881,22 +866,65 @@ class OrcamentoService {
       }
     `;
 
-    const res = await axios({
+    const resCustomer = await axios({
       url: `https://${shop}/admin/api/2024-04/graphql.json`,
       method: 'POST',
       headers: { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' },
-      data: { query: mutation, variables: { input } }
+      data: { query: mutationCustomer, variables: { input } }
     });
 
-    if (res.data.errors) {
-      console.error('[GRAPHQL ERRORS]:', JSON.stringify(res.data.errors));
+    if (resCustomer.data.errors) {
+      console.error('[GRAPHQL ERRORS customerUpdate]:', JSON.stringify(resCustomer.data.errors));
       throw new Error('Erro na comunicação com a API do Shopify.');
     }
 
-    const userErrors = res.data.data?.customerUpdate?.userErrors || [];
+    const userErrors = resCustomer.data.data?.customerUpdate?.userErrors || [];
     if (userErrors.length > 0) {
       console.error('[CUSTOMER UPDATE ERRORS]:', JSON.stringify(userErrors));
-      throw new Error(userErrors[0].message || 'Erro ao atualizar dados do cliente no Shopify.');
+      throw new Error(userErrors[0].message || 'Erro ao atualizar nome do cliente no Shopify.');
+    }
+
+    // 2. ATUALIZAR METAFIELDS VIA metafieldsSet (Sem risco de conflito de chave existente)
+    const metafields = [];
+    if (data.cnpj !== undefined) metafields.push({ ownerId: gid, namespace: 'custom', key: 'cnpj', type: 'number_integer', value: String(data.cnpj || '').replace(/\D/g, '') });
+    if (data.empresa !== undefined) metafields.push({ ownerId: gid, namespace: 'custom', key: 'empresa', type: 'single_line_text_field', value: String(data.empresa || '') });
+    if (data.endereco !== undefined) metafields.push({ ownerId: gid, namespace: 'custom', key: 'endereco', type: 'single_line_text_field', value: String(data.endereco || '') });
+    if (data.cep !== undefined) metafields.push({ ownerId: gid, namespace: 'custom', key: 'cep', type: 'number_integer', value: String(data.cep || '').replace(/\D/g, '') });
+    if (data.phone !== undefined) {
+      const pVal = String(data.phone || '').trim();
+      metafields.push({ ownerId: gid, namespace: 'custom', key: 'telefone', type: 'single_line_text_field', value: pVal });
+      metafields.push({ ownerId: gid, namespace: 'custom', key: 'whatsapp', type: 'single_line_text_field', value: pVal });
+    }
+
+    const validMetafields = metafields.filter(m => m.value !== '');
+
+    if (validMetafields.length > 0) {
+      const mutationMetafields = `
+        mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields { id key value }
+            userErrors { field message }
+          }
+        }
+      `;
+
+      const resMetafields = await axios({
+        url: `https://${shop}/admin/api/2024-04/graphql.json`,
+        method: 'POST',
+        headers: { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' },
+        data: { query: mutationMetafields, variables: { metafields: validMetafields } }
+      });
+
+      if (resMetafields.data.errors) {
+        console.error('[GRAPHQL ERRORS metafieldsSet]:', JSON.stringify(resMetafields.data.errors));
+        throw new Error('Erro na comunicação de metacampos com a API do Shopify.');
+      }
+
+      const metaErrors = resMetafields.data.data?.metafieldsSet?.userErrors || [];
+      if (metaErrors.length > 0) {
+        console.error('[METAFIELDS SET ERRORS]:', JSON.stringify(metaErrors));
+        throw new Error(metaErrors[0].message || 'Erro ao sincronizar dados corporativos na Shopify.');
+      }
     }
 
     return { success: true };
