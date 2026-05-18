@@ -80,8 +80,14 @@ class PdfService {
     let adjustmentFactor = 1;
     if (orcamento.condicao_json) {
       const v = parseFloat(orcamento.condicao_json.valor);
-      adjustmentFactor = orcamento.condicao_json.tipo === 'desconto' ? (1 - v/100) : (orcamento.condicao_json.tipo === 'acréscimo' ? (1 + v/100) : 1);
-      console.log(`[PDF SERVICE]: Diluindo Condição (${orcamento.condicao_json.tipo}: ${v}%) nos itens.`);
+      const modalidade = orcamento.condicao_json.modalidade || 'porcentagem';
+      const sub = parseFloat(orcamento.original_price || orcamento.total_price || 0);
+      let factor = v / 100;
+      if (modalidade === 'valor_fixo' && sub > 0) {
+        factor = v / sub;
+      }
+      adjustmentFactor = orcamento.condicao_json.tipo === 'desconto' ? (1 - factor) : (orcamento.condicao_json.tipo === 'acréscimo' ? (1 + factor) : 1);
+      console.log(`[PDF SERVICE]: Diluindo Condição (${orcamento.condicao_json.tipo}: ${modalidade === 'valor_fixo' ? 'R$ ' + v.toFixed(2) : v.toFixed(2) + '%'}) nos itens.`);
     }
 
     // Determinar visibilidade de preços (v5.5.0 - Robust Check)

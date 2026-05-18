@@ -186,7 +186,7 @@ class AdminController {
         const condicao = await Condicao.findByPk(condicao_id);
         if (condicao) {
           const valor = parseFloat(condicao.valor);
-          const ajuste = (subtotal * valor) / 100;
+          const ajuste = condicao.modalidade === 'valor_fixo' ? valor : (subtotal * valor) / 100;
           if (condicao.tipo === 'desconto') {
             finalPrice -= ajuste;
           } else if (condicao.tipo === 'acréscimo') {
@@ -196,6 +196,7 @@ class AdminController {
             id: condicao.id,
             nome: condicao.nome,
             tipo: condicao.tipo,
+            modalidade: condicao.modalidade || 'porcentagem',
             valor: valor
           };
         }
@@ -357,7 +358,7 @@ class AdminController {
 
   async createCondicao(req, res) {
     try {
-      const { nome, tipo, valor, is_default } = req.body;
+      const { nome, tipo, modalidade, valor, is_default } = req.body;
       
       const session = await this.validateSession(req, res);
       if (!session) return;
@@ -371,7 +372,7 @@ class AdminController {
         await Condicao.update({ is_default: false }, { where: {} });
       }
 
-      const condicao = await Condicao.create({ nome, tipo, valor: finalValor, is_default: !!is_default });
+      const condicao = await Condicao.create({ nome, tipo, modalidade: modalidade || 'porcentagem', valor: finalValor, is_default: !!is_default });
       res.status(201).json(condicao);
     } catch (error) {
       res.status(500).json({ error: 'Erro ao criar condição' });
@@ -381,7 +382,7 @@ class AdminController {
   async updateCondicao(req, res) {
     try {
       const { id } = req.params;
-      const { nome, tipo, valor, is_default } = req.body;
+      const { nome, tipo, modalidade, valor, is_default } = req.body;
       
       const session = await this.validateSession(req, res);
       if (!session) return;
@@ -398,7 +399,7 @@ class AdminController {
         await Condicao.update({ is_default: false }, { where: {} });
       }
 
-      await condicao.update({ nome, tipo, valor: finalValor, is_default: !!is_default });
+      await condicao.update({ nome, tipo, modalidade: modalidade || 'porcentagem', valor: finalValor, is_default: !!is_default });
 
       res.json(condicao);
     } catch (error) {

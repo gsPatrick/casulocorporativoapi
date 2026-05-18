@@ -16,6 +16,11 @@ const Condicao = sequelize.define('Condicao', {
     allowNull: false,
     defaultValue: 'desconto'
   },
+  modalidade: {
+    type: DataTypes.ENUM('porcentagem', 'valor_fixo'),
+    allowNull: false,
+    defaultValue: 'porcentagem'
+  },
   valor: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,

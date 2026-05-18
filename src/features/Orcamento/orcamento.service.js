@@ -91,10 +91,10 @@ class OrcamentoService {
 
     if (condicaoPadrao) {
       const valorCondicao = parseFloat(condicaoPadrao.valor);
-      const ajuste = (subtotal * valorCondicao) / 100;
+      const ajuste = condicaoPadrao.modalidade === 'valor_fixo' ? valorCondicao : (subtotal * valorCondicao) / 100;
       if (condicaoPadrao.tipo === 'desconto') subtotal -= ajuste;
       else if (condicaoPadrao.tipo === 'acréscimo') subtotal += ajuste;
-      condicaoJson = { id: condicaoPadrao.id, nome: condicaoPadrao.nome, tipo: condicaoPadrao.tipo, valor: valorCondicao };
+      condicaoJson = { id: condicaoPadrao.id, nome: condicaoPadrao.nome, tipo: condicaoPadrao.tipo, modalidade: condicaoPadrao.modalidade || 'porcentagem', valor: valorCondicao };
     }
     
     const { vendedor, parceiro } = this.parseBusinessTags(data.customer_tags || []);

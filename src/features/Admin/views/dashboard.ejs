@@ -396,8 +396,9 @@
                                                     <option value="<%= cond.id %>" 
                                                         data-valor="<%= cond.valor %>" 
                                                         data-tipo="<%= cond.tipo %>"
+                                                        data-modalidade="<%= cond.modalidade || 'porcentagem' %>"
                                                         <%= (orc.condicao_json && orc.condicao_json.id === cond.id) ? 'selected' : '' %>>
-                                                        <%= cond.nome %> (<%= cond.tipo === 'bruto' ? 'Preço Bruto' : (cond.tipo === 'desconto' ? '-' : '+') + parseFloat(cond.valor).toFixed(2) + '%' %>)
+                                                        <%= cond.nome %> (<%= cond.tipo === 'bruto' ? 'Preço Bruto' : (cond.tipo === 'desconto' ? '-' : '+') + (cond.modalidade === 'valor_fixo' ? 'R$ ' + formatMoney(cond.valor) : parseFloat(cond.valor).toFixed(2) + '%') %>)
                                                     </option>
                                                 <% }); %>
                                             </select>
@@ -495,7 +496,7 @@
                         <th style="width: 50px;">PADRÃO</th>
                         <th>Nome da Condição</th>
                         <th>Tipo</th>
-                        <th>Valor (%)</th>
+                        <th>Modalidade e Valor</th>
                         <th style="text-align: right;">Ações</th>
                     </tr>
                 </thead>
@@ -513,7 +514,7 @@
                                     <%= cond.tipo === 'bruto' ? 'Preço Bruto' : cond.tipo %>
                                 </span>
                             </td>
-                            <td style="font-weight: 700;"><%= cond.tipo === 'bruto' ? '-' : parseFloat(cond.valor).toFixed(2) + '%' %></td>
+                            <td style="font-weight: 700;"><%= cond.tipo === 'bruto' ? '-' : (cond.modalidade === 'valor_fixo' ? 'R$ ' + formatMoney(cond.valor) : parseFloat(cond.valor).toFixed(2) + '%') %></td>
                             <td style="text-align: right;">
                                 <div style="display: inline-flex; gap: 10px;">
                                     <button class="btn-black btn-outline" onclick="editCondicao('<%= encodeURIComponent(JSON.stringify(cond)) %>')"><i data-lucide="edit"></i></button>
@@ -534,7 +535,7 @@
 
     <!-- MODAL CONDICAO -->
     <div id="modal-condicao" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-        <div style="background: #fff; width: 400px; padding: 30px; border-radius: 0; border: 2px solid #000;">
+        <div style="background: #fff; width: 450px; padding: 30px; border-radius: 0; border: 2px solid #000;">
             <h3 id="modal-condicao-title" style="font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 20px;">Nova Condição Comercial</h3>
             <form id="form-condicao" onsubmit="saveCondicao(); return false;">
                 <input type="hidden" id="cond-id">
@@ -552,9 +553,16 @@
                         </select>
                     </div>
                     <div>
-                        <label class="label-premium">Valor (%)</label>
-                        <input type="number" id="cond-valor" class="input-premium" step="0.01" min="0" required placeholder="0.00">
+                        <label class="label-premium">Modalidade</label>
+                        <select id="cond-modalidade" class="input-premium" onchange="handleCondTipoChange()">
+                            <option value="porcentagem">Porcentagem (%)</option>
+                            <option value="valor_fixo">Valor Fixo (R$)</option>
+                        </select>
                     </div>
+                </div>
+                <div style="margin-bottom: 15px;" id="cond-valor-wrapper">
+                    <label class="label-premium" id="cond-valor-label">Valor (%)</label>
+                    <input type="number" id="cond-valor" class="input-premium" step="0.01" min="0" required placeholder="0.00">
                 </div>
                 <div style="margin-bottom: 20px;">
                     <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
@@ -756,7 +764,8 @@
                 const opt = condicaoSelect.options[condicaoSelect.selectedIndex];
                 const valor = parseFloat(opt.getAttribute('data-valor'));
                 const tipo = opt.getAttribute('data-tipo');
-                const ajuste = (subtotal * valor) / 100;
+                const modalidade = opt.getAttribute('data-modalidade');
+                const ajuste = modalidade === 'valor_fixo' ? valor : (subtotal * valor) / 100;
                 
                 if (tipo === 'desconto') finalPrice -= ajuste;
                 else if (tipo === 'acréscimo') finalPrice += ajuste;
@@ -879,13 +888,26 @@
         function handleCondTipoChange() {
             const sel = document.getElementById('cond-tipo').value;
             const valInput = document.getElementById('cond-valor');
+            const modalidadeSel = document.getElementById('cond-modalidade');
+            const valLabel = document.getElementById('cond-valor-label');
+
             if (sel === 'bruto') {
                 valInput.value = '0';
                 valInput.readOnly = true;
                 valInput.style.backgroundColor = '#e9ecef';
+                modalidadeSel.disabled = true;
+                modalidadeSel.style.backgroundColor = '#e9ecef';
             } else {
                 valInput.readOnly = false;
                 valInput.style.backgroundColor = '#fff';
+                modalidadeSel.disabled = false;
+                modalidadeSel.style.backgroundColor = '#fff';
+            }
+
+            if (modalidadeSel.value === 'valor_fixo') {
+                valLabel.innerText = 'Valor Fixo (R$)';
+            } else {
+                valLabel.innerText = 'Valor (%)';
             }
         }
 
@@ -893,6 +915,7 @@
             document.getElementById('modal-condicao-title').innerText = 'Nova Condição Comercial';
             document.getElementById('form-condicao').reset();
             document.getElementById('cond-id').value = '';
+            document.getElementById('cond-modalidade').value = 'porcentagem';
             handleCondTipoChange();
             document.getElementById('modal-condicao').style.display = 'flex';
         }
@@ -907,6 +930,7 @@
             document.getElementById('cond-id').value = cond.id;
             document.getElementById('cond-nome').value = cond.nome;
             document.getElementById('cond-tipo').value = cond.tipo;
+            document.getElementById('cond-modalidade').value = cond.modalidade || 'porcentagem';
             handleCondTipoChange();
             if (cond.tipo !== 'bruto') document.getElementById('cond-valor').value = cond.valor;
             document.getElementById('cond-default').checked = cond.is_default;
@@ -918,6 +942,7 @@
             const payload = {
                 nome: document.getElementById('cond-nome').value,
                 tipo: document.getElementById('cond-tipo').value,
+                modalidade: document.getElementById('cond-modalidade').value,
                 valor: document.getElementById('cond-valor').value,
                 is_default: document.getElementById('cond-default').checked
             };
