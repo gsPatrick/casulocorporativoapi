@@ -781,8 +781,8 @@ class OrcamentoService {
       `;
 
       const metafields = [
-        { ownerId: gid, namespace: 'custom', key: 'cnpj', value: leadData.cnpj || '', type: 'single_line_text_field' },
-        { ownerId: gid, namespace: 'custom', key: 'cep', value: leadData.cep || '', type: 'single_line_text_field' },
+        { ownerId: gid, namespace: 'custom', key: 'cnpj', value: String(leadData.cnpj || '').replace(/\D/g, ''), type: 'number_integer' },
+        { ownerId: gid, namespace: 'custom', key: 'cep', value: String(leadData.cep || '').replace(/\D/g, ''), type: 'number_integer' },
         { ownerId: gid, namespace: 'custom', key: 'endereco', value: leadData.endereco || '', type: 'single_line_text_field' },
         { ownerId: gid, namespace: 'custom', key: 'empresa', value: leadData.empresa || '', type: 'single_line_text_field' }
       ].filter(m => m.value !== '');
@@ -853,10 +853,10 @@ class OrcamentoService {
     const gid = customerId.toString().startsWith('gid://') ? customerId : `gid://shopify/Customer/${customerId}`;
 
     const metafields = [];
-    if (data.cnpj !== undefined) metafields.push({ namespace: 'custom', key: 'cnpj', type: 'single_line_text_field', value: String(data.cnpj || '') });
+    if (data.cnpj !== undefined) metafields.push({ namespace: 'custom', key: 'cnpj', type: 'number_integer', value: String(data.cnpj || '').replace(/\D/g, '') });
     if (data.empresa !== undefined) metafields.push({ namespace: 'custom', key: 'empresa', type: 'single_line_text_field', value: String(data.empresa || '') });
     if (data.endereco !== undefined) metafields.push({ namespace: 'custom', key: 'endereco', type: 'single_line_text_field', value: String(data.endereco || '') });
-    if (data.cep !== undefined) metafields.push({ namespace: 'custom', key: 'cep', type: 'single_line_text_field', value: String(data.cep || '') });
+    if (data.cep !== undefined) metafields.push({ namespace: 'custom', key: 'cep', type: 'number_integer', value: String(data.cep || '').replace(/\D/g, '') });
 
     const input = { id: gid };
     if (data.firstName !== undefined) input.firstName = String(data.firstName || '');
