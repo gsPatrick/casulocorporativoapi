@@ -23,7 +23,7 @@ const shopifyAdmin = {
       return cachedToken.token;
     }
 
-    const shop = process.env.SHOPIFY_HOST_NAME;
+    const shop = process.env.SHOPIFY_HOST_NAME || '9bf7e4-75.myshopify.com';
     const clientId = process.env.SHOPIFY_CLIENT_ID;
     const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
 
@@ -68,7 +68,7 @@ const shopifyAdmin = {
    * Executa uma query ou mutation GraphQL
    */
   async query(query, variables = {}) {
-    const shop = process.env.SHOPIFY_HOST_NAME;
+    const shop = process.env.SHOPIFY_HOST_NAME || '9bf7e4-75.myshopify.com';
     const accessToken = await this.getAccessToken();
     
     const url = `https://${shop}/admin/api/2024-04/graphql.json`;

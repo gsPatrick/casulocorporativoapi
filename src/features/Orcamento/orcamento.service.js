@@ -848,7 +848,7 @@ class OrcamentoService {
     const axios = require('axios');
     const shopAdmin = require('../../services/shopifyAdmin');
     const accessToken = await shopAdmin.getAccessToken();
-    const shop = process.env.SHOPIFY_SHOP || 'casulo-concept.myshopify.com';
+    const shop = process.env.SHOPIFY_HOST_NAME || '9bf7e4-75.myshopify.com';
 
     const gid = customerId.toString().startsWith('gid://') ? customerId : `gid://shopify/Customer/${customerId}`;
 
