@@ -189,7 +189,7 @@ class AdminController {
           const ajuste = (subtotal * valor) / 100;
           if (condicao.tipo === 'desconto') {
             finalPrice -= ajuste;
-          } else {
+          } else if (condicao.tipo === 'acréscimo') {
             finalPrice += ajuste;
           }
           condicaoData = {
@@ -362,7 +362,8 @@ class AdminController {
       const session = await this.validateSession(req, res);
       if (!session) return;
 
-      if (valor === undefined || valor === null || valor === '') {
+      let finalValor = tipo === 'bruto' ? 0 : valor;
+      if (finalValor === undefined || finalValor === null || finalValor === '') {
         return res.status(400).json({ error: 'Valor é obrigatório e pode ser 0' });
       }
 
@@ -370,7 +371,7 @@ class AdminController {
         await Condicao.update({ is_default: false }, { where: {} });
       }
 
-      const condicao = await Condicao.create({ nome, tipo, valor, is_default: !!is_default });
+      const condicao = await Condicao.create({ nome, tipo, valor: finalValor, is_default: !!is_default });
       res.status(201).json(condicao);
     } catch (error) {
       res.status(500).json({ error: 'Erro ao criar condição' });
@@ -385,7 +386,8 @@ class AdminController {
       const session = await this.validateSession(req, res);
       if (!session) return;
 
-      if (valor === undefined || valor === null || valor === '') {
+      let finalValor = tipo === 'bruto' ? 0 : valor;
+      if (finalValor === undefined || finalValor === null || finalValor === '') {
         return res.status(400).json({ error: 'Valor é obrigatório e pode ser 0' });
       }
 
@@ -396,7 +398,7 @@ class AdminController {
         await Condicao.update({ is_default: false }, { where: {} });
       }
 
-      await condicao.update({ nome, tipo, valor, is_default: !!is_default });
+      await condicao.update({ nome, tipo, valor: finalValor, is_default: !!is_default });
 
       res.json(condicao);
     } catch (error) {

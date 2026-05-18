@@ -80,7 +80,7 @@ class PdfService {
     let adjustmentFactor = 1;
     if (orcamento.condicao_json) {
       const v = parseFloat(orcamento.condicao_json.valor);
-      adjustmentFactor = orcamento.condicao_json.tipo === 'desconto' ? (1 - v/100) : (1 + v/100);
+      adjustmentFactor = orcamento.condicao_json.tipo === 'desconto' ? (1 - v/100) : (orcamento.condicao_json.tipo === 'acréscimo' ? (1 + v/100) : 1);
       console.log(`[PDF SERVICE]: Diluindo Condição (${orcamento.condicao_json.tipo}: ${v}%) nos itens.`);
     }
 

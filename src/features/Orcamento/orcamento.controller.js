@@ -494,6 +494,21 @@ class OrcamentoController {
       res.status(400).json({ error: error.message });
     }
   }
+
+  async updateCustomerProfile(req, res) {
+    try {
+      const customerId = req.params.customer_id;
+      const data = req.body;
+      
+      console.log(`[CONTROLLER]: Atualizando perfil para cliente ${customerId}`, data);
+      await orcamentoService.updateCustomerProfile(customerId, data);
+      
+      res.json({ success: true, message: 'Dados cadastrais atualizados com sucesso.' });
+    } catch (error) {
+      console.error('[CONTROLLER PROFILE UPDATE ERROR]:', error.message);
+      res.status(500).json({ error: error.message || 'Erro ao atualizar dados cadastrais.' });
+    }
+  }
 }
 
 module.exports = new OrcamentoController();

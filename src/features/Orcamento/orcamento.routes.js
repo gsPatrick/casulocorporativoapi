@@ -38,6 +38,7 @@ router.post('/check-snapshots', orcamentoController.checkSnapshots);
 
 // Rota sensível que exige confirmação da sessão do cliente (Validado por Shopify/Customer ID)
 router.get('/cliente/:customer_id', validateCustomerSession, orcamentoController.listByCustomer);
+router.post('/cliente/:customer_id/update-profile', validateCustomerSession, orcamentoController.updateCustomerProfile.bind(orcamentoController));
 router.put('/:id', validateCustomerSession, orcamentoController.update.bind(orcamentoController));
 router.post('/:id/submit', validateCustomerSession, orcamentoController.submit.bind(orcamentoController));
 router.post('/:id/cancel', validateCustomerSession, orcamentoController.cancel.bind(orcamentoController));

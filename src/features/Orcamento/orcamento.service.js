@@ -93,7 +93,7 @@ class OrcamentoService {
       const valorCondicao = parseFloat(condicaoPadrao.valor);
       const ajuste = (subtotal * valorCondicao) / 100;
       if (condicaoPadrao.tipo === 'desconto') subtotal -= ajuste;
-      else subtotal += ajuste;
+      else if (condicaoPadrao.tipo === 'acréscimo') subtotal += ajuste;
       condicaoJson = { id: condicaoPadrao.id, nome: condicaoPadrao.nome, tipo: condicaoPadrao.tipo, valor: valorCondicao };
     }
     
@@ -842,6 +842,64 @@ class OrcamentoService {
 
   async getOrcamentoByShortCode(code) {
     return await Orcamento.findOne({ where: { short_code: code } });
+  }
+
+  async updateCustomerProfile(customerId, data) {
+    const axios = require('axios');
+    const shopAdmin = require('../../services/shopifyAdmin');
+    const accessToken = await shopAdmin.getAccessToken();
+    const shop = process.env.SHOPIFY_SHOP || 'casulo-concept.myshopify.com';
+
+    const gid = customerId.toString().startsWith('gid://') ? customerId : `gid://shopify/Customer/${customerId}`;
+
+    const metafields = [];
+    if (data.cnpj !== undefined) metafields.push({ namespace: 'custom', key: 'cnpj', type: 'single_line_text_field', value: String(data.cnpj || '') });
+    if (data.empresa !== undefined) metafields.push({ namespace: 'custom', key: 'empresa', type: 'single_line_text_field', value: String(data.empresa || '') });
+    if (data.endereco !== undefined) metafields.push({ namespace: 'custom', key: 'endereco', type: 'single_line_text_field', value: String(data.endereco || '') });
+    if (data.cep !== undefined) metafields.push({ namespace: 'custom', key: 'cep', type: 'single_line_text_field', value: String(data.cep || '') });
+
+    const input = { id: gid };
+    if (data.firstName !== undefined) input.firstName = String(data.firstName || '');
+    if (data.lastName !== undefined) input.lastName = String(data.lastName || '');
+    
+    let cleanPhone = String(data.phone || '').trim();
+    if (cleanPhone && !cleanPhone.startsWith('+')) {
+      const digits = cleanPhone.replace(/[^\d]/g, '');
+      if (digits.length >= 10) cleanPhone = '+55' + digits;
+      else cleanPhone = null;
+    }
+    if (cleanPhone) input.phone = cleanPhone;
+
+    if (metafields.length > 0) input.metafields = metafields;
+
+    const mutation = `
+      mutation customerUpdate($input: CustomerInput!) {
+        customerUpdate(input: $input) {
+          customer { id firstName lastName phone }
+          userErrors { field message }
+        }
+      }
+    `;
+
+    const res = await axios({
+      url: `https://${shop}/admin/api/2024-04/graphql.json`,
+      method: 'POST',
+      headers: { 'X-Shopify-Access-Token': accessToken, 'Content-Type': 'application/json' },
+      data: { query: mutation, variables: { input } }
+    });
+
+    if (res.data.errors) {
+      console.error('[GRAPHQL ERRORS]:', JSON.stringify(res.data.errors));
+      throw new Error('Erro na comunicação com a API do Shopify.');
+    }
+
+    const userErrors = res.data.data?.customerUpdate?.userErrors || [];
+    if (userErrors.length > 0) {
+      console.error('[CUSTOMER UPDATE ERRORS]:', JSON.stringify(userErrors));
+      throw new Error(userErrors[0].message || 'Erro ao atualizar dados do cliente no Shopify.');
+    }
+
+    return { success: true };
   }
 }
 

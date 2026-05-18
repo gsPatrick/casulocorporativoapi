@@ -12,7 +12,7 @@ const Condicao = sequelize.define('Condicao', {
     allowNull: false,
   },
   tipo: {
-    type: DataTypes.ENUM('desconto', 'acréscimo'),
+    type: DataTypes.ENUM('desconto', 'acréscimo', 'bruto'),
     allowNull: false,
     defaultValue: 'desconto'
   },
