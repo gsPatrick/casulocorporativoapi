@@ -23,5 +23,7 @@ router.post('/flow/next-code', adminController.getNextCustomerCode.bind(adminCon
 router.post('/flow/update-customer', adminController.updateCustomerFromFlow.bind(adminController));
 router.get('/settings/data', adminController.getSettingsData.bind(adminController));
 router.post('/settings/update', adminController.updateSettings.bind(adminController));
+router.get('/settings/logo', adminController.getPdfLogo.bind(adminController));
+router.post('/settings/logo', adminController.uploadPdfLogo.bind(adminController));
 
 module.exports = router;

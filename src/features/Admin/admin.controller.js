@@ -536,6 +536,45 @@ class AdminController {
       res.status(500).json({ error: 'Erro ao atualizar configurações' });
     }
   }
+
+  async getPdfLogo(req, res) {
+    const fs = require('fs');
+    const path = require('path');
+    const logoPath = path.join(__dirname, '../Orcamento/templates/assets/logo.png');
+    if (fs.existsSync(logoPath)) {
+      res.sendFile(logoPath);
+    } else {
+      res.status(404).send('Logo não encontrada');
+    }
+  }
+
+  async uploadPdfLogo(req, res) {
+    try {
+      const { base64Logo } = req.body;
+      const session = await this.validateSession(req, res);
+      if (!session) return;
+
+      if (!base64Logo || !base64Logo.startsWith('data:image')) {
+        return res.status(400).json({ error: 'Imagem base64 inválida' });
+      }
+
+      const buffer = Buffer.from(base64Logo.split(',')[1], 'base64');
+      const fs = require('fs');
+      const path = require('path');
+      const assetsDir = path.join(__dirname, '../Orcamento/templates/assets');
+      if (!fs.existsSync(assetsDir)) {
+        fs.mkdirSync(assetsDir, { recursive: true });
+      }
+
+      const logoPath = path.join(assetsDir, 'logo.png');
+      fs.writeFileSync(logoPath, buffer);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('[ADMIN CONTROLLER]: Erro ao salvar logo:', error.message);
+      res.status(500).json({ error: 'Erro ao fazer upload da logo' });
+    }
+  }
 }
 
 module.exports = new AdminController();

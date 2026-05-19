@@ -1116,10 +1116,58 @@
             }
         }
 
+        let pendingLogoBase64 = null;
+        function previewLogo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                pendingLogoBase64 = e.target.result;
+                document.getElementById('current-pdf-logo').src = pendingLogoBase64;
+                document.getElementById('btn-save-logo').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function uploadPdfLogo() {
+            if (!pendingLogoBase64) return;
+            const btn = document.getElementById('btn-save-logo');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> SALVANDO...';
+            lucide.createIcons();
+
+            try {
+                const token = await getAuthenticatedToken();
+                const response = await fetch(`${window.location.origin}/admin/settings/logo`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ base64Logo: pendingLogoBase64 })
+                });
+
+                if (response.ok) {
+                    showToast('Logo do PDF atualizada com sucesso!');
+                    btn.style.display = 'none';
+                    pendingLogoBase64 = null;
+                } else {
+                    showToast('Erro ao atualizar a logo.');
+                }
+            } catch (err) {
+                showToast('Falha na comunicação: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                lucide.createIcons();
+            }
+        }
+
         // Interceptar troca de aba para carregar dados
         const originalSwitchTab = window.switchTab;
         window.switchTab = function(id) {
-            if (id === 'tab-configuracoes') loadSettings();
+            if (id === 'tab-configuracoes') {
+                loadSettings();
+                document.getElementById('current-pdf-logo').src = `${window.location.origin}/admin/settings/logo?t=${Date.now()}`;
+            }
             if (typeof originalSwitchTab === 'function') originalSwitchTab(id);
         }
     </script>
@@ -1127,7 +1175,7 @@
     <!-- ABA CONFIGURAÇÕES -->
     <div id="tab-configuracoes" class="tab-content">
         <div style="display: grid; grid-template-columns: 350px 1fr; gap: 30px;">
-            <!-- Painel Esquerdo: Configuração do Contador -->
+            <!-- Painel Esquerdo: Configuração do Contador e Logo -->
             <div>
                 <div class="polaris-card" style="padding: 25px; margin-bottom: 20px;">
                     <h3 style="text-transform: uppercase; font-weight: 800; font-size: 14px; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px;">Validade de Propostas</h3>
@@ -1154,7 +1202,7 @@
                     </div>
                 </div>
 
-                <div class="polaris-card" style="padding: 25px;">
+                <div class="polaris-card" style="padding: 25px; margin-bottom: 20px;">
                     <h3 style="text-transform: uppercase; font-weight: 800; font-size: 14px; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px;">ID Sequencial B2B</h3>
                     <p style="font-size: 13px; color: #666; margin-bottom: 25px;">Defina o próximo número de ID atribuído automaticamente.</p>
                     
@@ -1167,6 +1215,25 @@
                     
                     <div style="margin-top: 20px; padding: 15px; background: #fafafa; border: 1px dashed #ccc; font-size: 11px; color: #666;">
                         <strong>Dica:</strong> Se você definir como 1280, o próximo cliente a finalizar o cadastro ganhará este número.
+                    </div>
+                </div>
+
+                <div class="polaris-card" style="padding: 25px;">
+                    <h3 style="text-transform: uppercase; font-weight: 800; font-size: 14px; margin-bottom: 20px; border-bottom: 1px solid #000; padding-bottom: 10px;">Logo do PDF</h3>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 25px;">Substitua a logo exibida no cabeçalho dos orçamentos em PDF.</p>
+                    
+                    <div style="text-align: center; margin-bottom: 20px; padding: 15px; border: 1px dashed #ccc; background: #fafafa; min-height: 80px; display: flex; align-items: center; justify-content: center;">
+                        <img id="current-pdf-logo" src="/admin/settings/logo" alt="Logo Atual" style="max-height: 80px; max-width: 100%; object-fit: contain;">
+                    </div>
+
+                    <input type="file" id="logo-file-input" accept="image/png, image/jpeg" style="display: none;" onchange="previewLogo(event)">
+                    
+                    <button class="btn-black btn-outline" style="width: 100%; height: 45px; margin-bottom: 15px;" onclick="document.getElementById('logo-file-input').click()"><i data-lucide="upload"></i> Escolher Nova Imagem</button>
+
+                    <button id="btn-save-logo" class="btn-black" style="width: 100%; height: 50px; display: none; background: #2b6cb0; border-color: #2b6cb0; color: #fff;" onclick="uploadPdfLogo()">Salvar Nova Logo</button>
+                    
+                    <div style="margin-top: 15px; font-size: 11px; color: #666; text-align: center;">
+                        Recomendado: Arquivo PNG com fundo transparente.
                     </div>
                 </div>
             </div>
